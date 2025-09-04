@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYNO Campaign Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .campaign-item, .account-item { border: 1px solid #9ca3af; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 2rem; background-color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); transition: opacity 0.3s ease-in-out; }
+        .input-group { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f8fafc; }
+        .input-group h3, .input-group h4 { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1rem; }
+        /* RYNO Branding Colors */
+        .btn-primary { background-color: #345177; color: white; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 0.375rem; transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #2c4362; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; font-weight: 500; padding: 0.5rem 1rem; border-radius: 0.375rem; transition: background-color 0.3s; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        .btn-accent { background-color: #f39c12; color: white; }
+        .btn-accent:hover { background-color: #e67e22; }
+        .form-input, .form-textarea, .form-select { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.375rem; padding: 0.5rem 0.75rem; transition: border-color 0.3s, box-shadow 0.3s; }
+        .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: #345177; box-shadow: 0 0 0 2px rgba(52, 81, 119, 0.2); }
+        .ad-group-item, .extension-item { border-top: 1px dashed #cbd5e1; padding-top: 1rem; margin-top: 1rem; }
+        .ad-group-item:first-child, .extension-item:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+        .remove-btn { color: #ef4444; font-weight: bold; cursor: pointer; }
+        .remove-btn:hover { color: #b91c1c; }
+        .campaign-header, .adgroup-header { cursor: pointer; }
+        .campaign-content.hidden, .ad-group-content.hidden { display: none; }
+        .char-limit-error { color: #ef4444; font-weight: bold; }
+        .live-preview { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.375rem; padding: 0.5rem 0.75rem; margin-top: 0.5rem; min-height: 40px; }
+        summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content { background-color: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); text-align: left; max-width: 90%; width: 500px; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-body { overflow-y: auto; }
+        .modal-close-btn { margin-top: 1rem; }
+        .drop-zone--over { border-color: #345177; background-color: #f0f4f8; }
+
+        /* New Styles for Navigator and Completion Status */
+        .page-wrapper { display: flex; }
+        #navigator { position: sticky; top: 0; left: 0; width: 280px; height: 100vh; background-color: #f8fafc; border-right: 1px solid #e2e8f0; padding: 1rem; overflow-y: auto; flex-shrink: 0; }
+        #main-content { flex-grow: 1; }
+        #navigator h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
+        #navigator ul { list-style: none; padding: 0; }
+        #navigator .nav-campaign > div > a { font-weight: 500; }
+        #navigator a { text-decoration: none; color: #374151; display: block; padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s; }
+        #navigator a:hover { background-color: #e5e7eb; }
+        .nav-adgroup { margin-left: 1.5rem; }
+        .nav-status { margin-right: 0.5rem; }
+        .completed-header, .completed-summary { background-color: #dcfce7 !important; }
+        .completed-check { color: #22c55e; display: inline !important; }
+        .toggle-adgroups, .focus-icon { cursor: pointer; margin-right: 0.5rem; color: #9ca3af; }
+        .toggle-adgroups:hover, .focus-icon:hover { color: #374151; }
+        .is-dimmed { opacity: 0.3; pointer-events: none; }
+        .is-focused { opacity: 1; pointer-events: auto; }
+        .library-item { display: flex; align-items: center; padding: 0.5rem; border-radius: 0.25rem; }
+        .library-item:hover { background-color: #f3f4f6; }
+        .ad-group-summary-bar { padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; cursor: pointer; }
+        .summary-stats { font-size: 0.8rem; color: #64748b; }
+        .ext-counter { background-color: #e2e8f0; color: #475569; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 9999px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="page-wrapper">
+        <nav id="navigator">
+            <h2>Campaign Navigator</h2>
+            <div class="mb-4">
+                <input type="text" id="nav-filter" class="form-input" placeholder="Filter campaigns...">
+                <button id="clear-focus-btn" class="btn-secondary w-full mt-2" style="display: none;">Clear Focus</button>
+            </div>
+            <ul id="nav-list"></ul>
+        </nav>
+
+        <main id="main-content" class="container mx-auto p-4 md:p-8 max-w-6xl">
+            <header class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900">RYNO Campaign Builder</h1>
+                <p class="text-gray-600 mt-2">Build campaigns, save your progress, and export for Google Ads Editor.</p>
+            </header>
+
+            <!-- Tools Section -->
+            <div class="mb-6 bg-white p-4 rounded-lg shadow">
+                 <details>
+                    <summary class="cursor-pointer text-lg font-semibold text-gray-800">Builder Tools</summary>
+                    <div class="mt-4 space-y-4">
+                        <!-- Case Converter -->
+                        <div class="input-group">
+                            <h4 class="text-lg font-semibold text-gray-700">Case Converter & Character Counter</h4>
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Input Text</label>
+                                    <textarea id="case-converter-input" class="form-textarea" rows="5"></textarea>
+                                    <div id="case-converter-input-counter" class="text-xs text-right text-gray-500 mt-1">Characters: 0</div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Output Text</label>
+                                    <textarea id="case-converter-output" class="form-textarea" rows="5" readonly></textarea>
+                                    <div id="case-converter-output-counter" class="text-xs text-right text-gray-500 mt-1">Characters: 0</div>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-center space-x-2">
+                                <button type="button" id="convert-sentence-case" class="btn-secondary btn-sm">Sentence case</button>
+                                <button type="button" id="convert-lower-case" class="btn-secondary btn-sm">lower case</button>
+                                <button type="button" id="convert-upper-case" class="btn-secondary btn-sm">UPPER CASE</button>
+                                <button type="button" id="convert-title-case" class="btn-secondary btn-sm">Title Case</button>
+                            </div>
+                        </div>
+                        <!-- Keyword Helper -->
+                        <div class="input-group">
+                            <h4 class="text-lg font-semibold text-gray-700">Keyword Match Type Helper</h4>
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Paste Keywords (one per line)</label>
+                                    <textarea id="keyword-helper-input" class="form-textarea" rows="5"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Generated Keywords</label>
+                                    <textarea id="keyword-helper-output" class="form-textarea" rows="5" readonly></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-center space-x-4">
+                                <button id="generate-keywords" class="btn-secondary">Generate</button>
+                                <div class="flex items-center space-x-3 text-sm text-gray-700">
+                                    <span>Include:</span>
+                                    <label class="flex items-center"><input type="checkbox" id="kw-broad" class="form-checkbox" checked> <span class="ml-1">Broad</span></label>
+                                    <label class="flex items-center"><input type="checkbox" id="kw-phrase" class="form-checkbox" checked> <span class="ml-1">Phrase</span></label>
+                                    <label class="flex items-center"><input type="checkbox" id="kw-exact" class="form-checkbox" checked> <span class="ml-1">Exact</span></label>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Find and Replace -->
+                        <div class="input-group">
+                             <h4 class="text-lg font-semibold text-gray-700">Find & Replace</h4>
+                             <p class="text-sm text-gray-600 mb-2">Perform a case-sensitive find and replace across all text fields in your build.</p>
+                             <div class="flex space-x-2">
+                                 <input type="text" id="find-text" class="form-input" placeholder="Find text">
+                                 <input type="text" id="replace-text" class="form-input" placeholder="Replace with">
+                                 <button type="button" id="find-replace-btn" class="btn-secondary">Replace All</button>
+                             </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <form id="multi-campaign-form" novalidate>
+                <div id="account-level-container">
+                    <div class="account-item">
+                        <div class="input-group">
+                            <h3 class="text-2xl font-semibold text-gray-800">Account Settings</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <div>
+                                    <h4 class="text-lg font-semibold text-gray-700 mb-2">Client & Account Reference</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div><input type="text" id="client-name" class="form-input" placeholder="Client Name"></div>
+                                        <div><input type="text" id="client-cid" class="form-input" placeholder="Google Ads CID"></div>
+                                        <div class="md:col-span-2"><input type="text" id="tracking-template" class="form-input" placeholder="Account Level Tracking Template"></div>
+                                        <div class="md:col-span-2"><input type="text" id="url-suffix" class="form-input" placeholder="Account Level Final URL Suffix"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-semibold text-gray-700 mb-2">Save/Load Build</h4>
+                                    <div class="flex space-x-2">
+                                        <button type="button" id="save-build" class="btn-secondary btn-accent flex-1">Save Build</button>
+                                        <label for="load-build-input" class="btn-secondary btn-accent flex-1 text-center cursor-pointer">Load Build</label>
+                                        <input type="file" id="load-build-input" class="hidden" accept=".json">
+                                        <button type="button" id="clear-all-btn" class="btn-secondary bg-red-200 text-red-800 hover:bg-red-300 flex-1">Clear All</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Ad Copy Library -->
+                        <div class="input-group">
+                             <details>
+                                <summary><h3 class="text-xl font-semibold text-gray-700 inline">Ad Copy Library</h3></summary>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Reusable Headlines (one per line)</label>
+                                        <textarea id="library-headlines" class="form-textarea" data-limit="30" rows="6"></textarea>
+                                        <div class="live-preview library-headlines-preview"></div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Reusable Descriptions (one per line)</label>
+                                        <textarea id="library-descriptions" class="form-textarea" data-limit="90" rows="6"></textarea>
+                                        <div class="live-preview library-descriptions-preview"></div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Save common ad copy here to quickly insert into any ad group below.</p>
+                             </details>
+                        </div>
+
+                        <div class="input-group">
+                            <details open>
+                                <summary><h3 class="text-xl font-semibold text-gray-700 inline">Asset Library (All Extensions)</h3></summary>
+                                <div class="mt-4">
+                                    <details class="mb-4"><summary class="text-lg font-semibold text-gray-600"><span>Sitelinks</span><span class="ext-counter" data-ext-type="sitelink"></span></summary><div class="account-sitelinks-container mt-2"></div><button type="button" class="add-ext mt-2 btn-secondary btn-sm" data-ext-type="sitelink" data-ext-container=".account-sitelinks-container">+ Add Sitelink</button></details>
+                                    <details class="mb-4"><summary class="text-lg font-semibold text-gray-600"><span>Call Extension</span><span class="ext-counter" data-ext-type="call"></span></summary><div class="account-call-extension-container mt-2"></div><button type="button" class="add-ext mt-2 btn-secondary btn-sm" data-ext-type="call" data-ext-container=".account-call-extension-container" data-limit="1">+ Add Call Extension</button></details>
+                                    <details class="mb-4"><summary class="text-lg font-semibold text-gray-600"><span>Callouts</span><span class="ext-counter" data-ext-type="callout"></span></summary><div class="account-callouts-container mt-2"></div><button type="button" class="add-ext mt-2 btn-secondary btn-sm" data-ext-type="callout" data-ext-container=".account-callouts-container">+ Add Callout</button></details>
+                                    <details class="mb-4"><summary class="text-lg font-semibold text-gray-600"><span>Structured Snippets</span><span class="ext-counter" data-ext-type="snippet"></span></summary><div class="account-snippets-container mt-2"></div><button type="button" class="add-ext mt-2 btn-secondary btn-sm" data-ext-type="snippet" data-ext-container=".account-snippets-container">+ Add Snippet</button></details>
+                                    <details class="mb-4"><summary class="text-lg font-semibold text-gray-600"><span>Image Extensions</span><span class="ext-counter" data-ext-type="image"></span></summary><div class="account-images-container mt-2"></div><button type="button" class="add-ext mt-2 btn-secondary btn-sm" data-ext-type="image" data-ext-container=".account-images-container">+ Add Image</button></details>
+                                    <details><summary class="text-lg font-semibold text-gray-600"><span>Promotion Extensions</span><span class="ext-counter" data-ext-type="promotion"></span></summary><div class="account-promotions-container mt-2"></div><button type="button" class="add-ext mt-2 btn-secondary btn-sm" data-ext-type="promotion" data-ext-container=".account-promotions-container">+ Add Promotion</button></details>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="campaigns-container"></div>
+                <div class="text-center my-6">
+                    <button type="button" id="add-campaign" class="btn-secondary text-base font-bold py-3 px-6">+ Add Another Campaign</button>
+                </div>
+                <div class="text-center mt-8 p-4 bg-white rounded-lg shadow-md sticky bottom-4">
+                    <button type="submit" class="btn-primary text-xl w-full md:w-auto">Generate & Download CSV for Editor</button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <!-- TEMPLATES START HERE -->
+    <template id="campaign-template">
+        <div class="campaign-item relative">
+            <div class="absolute top-4 right-4 flex space-x-4">
+                <button type="button" class="duplicate-campaign text-blue-500 hover:text-blue-700 flex items-center space-x-1 text-sm font-medium" title="Duplicate Campaign">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    <span>Duplicate</span>
+                </button>
+                <button type="button" class="remove-campaign remove-btn flex items-center space-x-1 text-sm font-medium" title="Remove Campaign">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Remove</span>
+                </button>
+            </div>
+            <div class="input-group">
+                 <div class="campaign-header flex justify-between items-center">
+                    <div class="flex items-center">
+                        <h3 class="text-2xl font-semibold text-gray-800">Campaign Settings</h3>
+                        <span class="completed-check text-green-500 ml-2" style="display: none;">✔</span>
+                    </div>
+                </div>
+                <div class="campaign-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Campaign Name</label><input type="text" class="form-input campaign-name" placeholder="e.g., Winter Coats - USA" required></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Daily Budget ($)</label><input type="number" class="form-input campaign-budget" placeholder="e.g., 100" min="1" required></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Campaign Status</label><select class="form-select campaign-status"><option value="Paused" selected>Paused</option><option value="Enabled">Enabled</option></select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Bid Strategy Type</label><select class="form-select bid-strategy"><option value="Maximize Clicks" selected>Maximize Clicks</option><option value="Maximize Conversions">Maximize Conversions</option><option value="Manual CPC">Manual CPC</option><option value="Target CPA">Target CPA</option></select></div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Networks</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center"><input type="checkbox" class="form-checkbox search-partners"> <span class="ml-2">Include Google search partners</span></label>
+                                <label class="flex items-center"><input type="checkbox" class="form-checkbox display-network"> <span class="ml-2">Include Google Display Network</span></label>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Location Targeting Option</label>
+                            <select class="form-select location-option">
+                                <option value="Presence or interest">Presence or interest</option>
+                                <option value="Presence" selected>Presence</option>
+                                <option value="Search interest">Search interest</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Location Targeting (one per line)</label>
+                            <textarea class="form-textarea locations" rows="4" placeholder="89117, United States&#10;Las Vegas, United States"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Accepted formats include: City, Country | Zip Code | State.</p>
+                        </div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Ad Schedule (one per line)</label><textarea class="form-textarea ad-schedule" rows="3" placeholder="(Monday[09:00-17:00])&#10;(Tuesday[09:00-17:00])"></textarea><p class="text-xs text-gray-500 mt-1">Format: (Day[HH:MM-HH:MM]).</p></div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Campaign Negative Keywords (one per line)</label>
+                            <textarea class="form-textarea campaign-negatives" rows="3" placeholder="[free]&#10;&quot;cheap&quot;&#10;jobs"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Use [exact], "phrase", or broad for match types.</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-4">
+                        <label class="flex items-center text-sm font-medium text-gray-600 cursor-pointer">
+                            <input type="checkbox" class="form-checkbox h-4 w-4 mr-2 complete-toggle">
+                            Done
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="campaign-content">
+                <div class="input-group">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-700">Ad Groups, Keywords & Ads</h3>
+                        <div class="flex space-x-2">
+                            <button type="button" class="btn-secondary btn-sm collapse-all-adgroups">Collapse All</button>
+                            <button type="button" class="btn-secondary btn-sm expand-all-adgroups">Expand All</button>
+                        </div>
+                    </div>
+                    <div class="ad-groups-container"></div>
+                    <button type="button" class="add-ad-group mt-4 btn-secondary">+ Add Ad Group</button>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="ad-group-template">
+        <div class="ad-group-item relative">
+            <div class="absolute top-1 right-0 flex space-x-2">
+                <button type="button" class="duplicate-ad-group text-blue-500 hover:text-blue-700 text-sm font-medium" title="Duplicate Ad Group">Duplicate</button>
+                <button type="button" class="remove-ad-group remove-btn text-sm font-medium" title="Remove Ad Group">Remove</button>
+            </div>
+             <div class="ad-group-summary-bar hidden">
+                <div class="flex justify-between items-center">
+                    <div class="font-semibold ad-group-summary-name"></div>
+                    <div class="summary-stats">
+                        <span class="keyword-count"></span> &bull;
+                        <span class="headline-count"></span> &bull;
+                        <span class="description-count"></span>
+                        <span class="completed-check-summary text-green-500 ml-2" style="display: none;">✔</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ad-group-content-wrapper">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                    <div class="md:col-span-1">
+                        <h4 class="text-lg font-semibold text-gray-600 mb-2 adgroup-header">Ad Group & Keywords</h4>
+                        <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">Ad Group Name</label><input type="text" class="form-input ad-group-name" placeholder="e.g., Wool Coats - Phrase" required></div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Keywords (one per line)</label>
+                            <textarea class="form-textarea keywords" rows="10" placeholder="[wool coats for women]&#10;&quot;buy wool coats&quot;&#10;mens winter coats" required></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Use [exact], "phrase", or broad for match types.</p>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ad Group Negative Keywords</label>
+                            <textarea class="form-textarea adgroup-negatives" rows="3" placeholder="[used]&#10;&quot;second hand&quot;"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Use [exact], "phrase", or broad for match types.</p>
+                        </div>
+                    </div>
+                    <div class="md:col-span-1">
+                        <div class="flex justify-between items-center mb-2">
+                             <h4 class="text-lg font-semibold text-gray-600">Responsive Search Ad</h4>
+                             <div>
+                                <button type="button" class="btn-secondary btn-sm insert-library-btn" data-type="headlines">Library</button>
+                             </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Headlines (one per line, max 15)</label>
+                                <textarea class="form-textarea rsa-headlines" data-limit="30" rows="8" placeholder="Up to 15 headlines..." required></textarea>
+                                <div class="live-preview rsa-headlines-preview"></div>
+                            </div>
+                             <div class="flex justify-between items-center mb-2">
+                                 <h4 class="text-lg font-semibold text-gray-600"> </h4>
+                                 <div>
+                                    <button type="button" class="btn-secondary btn-sm insert-library-btn" data-type="descriptions">Library</button>
+                                 </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Descriptions (one per line, max 4)</label>
+                                <textarea class="form-textarea rsa-descriptions" data-limit="90" rows="4" placeholder="Up to 4 descriptions..." required></textarea>
+                                <div class="live-preview rsa-descriptions-preview"></div>
+                            </div>
+                            <input type="url" class="form-input final-url" placeholder="https://www.example.com" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <label class="flex items-center text-xs font-medium text-gray-500 cursor-pointer">
+                        <input type="checkbox" class="form-checkbox h-3 w-3 mr-1 complete-toggle">
+                        Done
+                    </label>
+                </div>
+            </div>
+        </div>
+    </template>
+    <!-- Extension Templates -->
+    <template id="call-ext-template"><div class="extension-item relative"><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Country</label><select class="form-select call-country"><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option><option value="ES">Spain</option><option value="MX">Mexico</option><option value="BR">Brazil</option><option value="IN">India</option></select></div><div><label class="block text-sm font-medium">Phone Number</label><input type="tel" class="form-input call-phone-number" placeholder="(555) 555-5555" required></div></div></div></template>
+    <template id="sitelink-ext-template"><div class="extension-item relative grid grid-cols-1 md:grid-cols-2 gap-4"><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Sitelink Text</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input sitelink-text" placeholder="Shop Men's Coats" maxlength="25" data-limit="25" required></div><div><label class="block text-sm font-medium">Final URL</label><input type="url" class="form-input sitelink-url" placeholder="https://example.com/mens" required></div><div class="md:col-span-2"><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Description 1 (optional)</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input sitelink-desc1" maxlength="35" data-limit="35"></div></div><div class="md:col-span-2"><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Description 2 (optional)</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input sitelink-desc2" maxlength="35" data-limit="35"></div></div></div></template>
+    <template id="callout-ext-template"><div class="extension-item relative"><div><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div class="flex justify-between items-center"><label class="block text-sm font-medium">Callout Text</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input callout-text" placeholder="Free Shipping" maxlength="25" data-limit="25" required></div></div></template>
+    <template id="image-ext-template">
+        <div class="extension-item relative">
+            <button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button>
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label class="block text-sm font-medium">Image Upload</label>
+                    <div class="mt-1 drop-zone flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer">
+                        <div class="space-y-1 text-center image-drop-prompt">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="text-sm text-gray-600">
+                                <span class="font-medium text-indigo-600 hover:text-indigo-500">Upload a file</span> or drag and drop
+                            </p>
+                            <p class="text-xs text-gray-500">PNG, JPG, GIF</p>
+                        </div>
+                        <div class="image-preview-container hidden text-center">
+                             <img class="image-preview max-h-32 mx-auto rounded-md" src="" alt="Image Preview">
+                             <button type="button" class="clear-image-btn remove-btn text-xs mt-1">Remove Image</button>
+                        </div>
+                        <input type="file" class="image-file-input hidden" accept="image/png, image/jpeg, image/gif">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Or Image URL / Asset ID</label>
+                    <input type="text" class="form-input image-asset" placeholder="https://example.com/image.jpg or 123456789">
+                </div>
+            </div>
+        </div>
+    </template>
+    <template id="snippet-ext-template">
+        <div class="extension-item relative">
+            <button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium">Header</label>
+                    <select class="form-select snippet-header"><option>Brands</option><option>Amenities</option><option>Courses</option><option>Destinations</option><option>Featured hotels</option><option>Insurance coverage</option><option>Models</option><option>Neighborhoods</option><option>Service catalog</option><option>Shows</option><option>Styles</option><option>Types</option></select>
+                </div>
+            </div>
+            <div class="snippet-values-container space-y-2 mt-4">
+                <div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Value 1</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input snippet-value" placeholder="Value 1" required data-limit="25" maxlength="25"></div>
+                <div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Value 2</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input snippet-value" placeholder="Value 2" required data-limit="25" maxlength="25"></div>
+                <div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Value 3</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input snippet-value" placeholder="Value 3" required data-limit="25" maxlength="25"></div>
+            </div>
+            <button type="button" class="add-snippet-value mt-2 btn-secondary btn-sm">+ Add Value</button>
+        </div>
+    </template>
+    <template id="promotion-ext-template"><div class="extension-item relative"><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Item</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input promo-item" placeholder="Winter Coats" maxlength="20" data-limit="20" required></div><div><label class="block text-sm font-medium">Final URL</label><input type="url" class="form-input promo-url" placeholder="https://example.com/sale" required></div><div><label class="block text-sm font-medium">Promotion Type</label><select class="form-select promo-type"><option>Monetary discount</option><option>Percent discount</option></select></div><div><label class="block text-sm font-medium">Value</label><input type="number" class="form-input promo-value" placeholder="20" required></div><div class="md:col-span-2"><label class="block text-sm font-medium">Occasion (optional)</label><select class="form-select promo-occasion"><option value="">None</option><option>New Year's</option><option>Valentine's Day</option><option>Easter</option><option>Mother's Day</option><option>Father's Day</option><option>Labor Day</option><option>Back To School</option><option>Halloween</option><option>Black Friday</option><option>Cyber Monday</option><option>Christmas</option></select></div></div></div></template>
+    <!-- TEMPLATES END HERE -->
+
+    <!-- Custom Modal -->
+    <div id="alert-modal" class="modal-overlay">
+        <div class="modal-content">
+            <p id="alert-message"></p>
+            <button id="alert-close-btn" class="btn-primary modal-close-btn">OK</button>
+        </div>
+    </div>
+    
+     <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <p id="confirm-message" class="text-center"></p>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="confirm-cancel-btn" class="btn-secondary">Cancel</button>
+                <button id="confirm-ok-btn" class="btn-primary bg-red-600 hover:bg-red-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Library Modal -->
+    <div id="library-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="library-modal-title" class="text-lg font-medium leading-6 text-gray-900 mb-4"></h3>
+            <div id="library-modal-body" class="modal-body"></div>
+            <div class="modal-footer mt-4 flex justify-end space-x-2">
+                <button type="button" id="library-cancel-btn" class="btn-secondary">Cancel</button>
+                <button type="button" id="library-insert-btn" class="btn-primary">Insert Selected</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- DOM Elements ---
+        const campaignsContainer = document.getElementById('campaigns-container');
+        const accountContainer = document.getElementById('account-level-container');
+        const multiCampaignForm = document.getElementById('multi-campaign-form');
+        const saveBtn = document.getElementById('save-build');
+        const loadInput = document.getElementById('load-build-input');
+        const addCampaignBtn = document.getElementById('add-campaign');
+        const navList = document.getElementById('nav-list');
+
+        // Modals
+        const alertModal = {
+            el: document.getElementById('alert-modal'),
+            message: document.getElementById('alert-message'),
+            closeBtn: document.getElementById('alert-close-btn')
+        };
+         const confirmModal = {
+            el: document.getElementById('confirm-modal'),
+            message: document.getElementById('confirm-message'),
+            cancelBtn: document.getElementById('confirm-cancel-btn'),
+            okBtn: document.getElementById('confirm-ok-btn')
+        };
+        const libraryModal = {
+            el: document.getElementById('library-modal'),
+            title: document.getElementById('library-modal-title'),
+            body: document.getElementById('library-modal-body'),
+            cancelBtn: document.getElementById('library-cancel-btn'),
+            insertBtn: document.getElementById('library-insert-btn')
+        };
+        let activeTextareaForLibrary = null;
+        let confirmCallback = null;
+
+
+        const templates = {
+            campaign: document.getElementById('campaign-template'),
+            adGroup: document.getElementById('ad-group-template'),
+            call: document.getElementById('call-ext-template'),
+            sitelink: document.getElementById('sitelink-ext-template'),
+            callout: document.getElementById('callout-ext-template'),
+            snippet: document.getElementById('snippet-ext-template'),
+            promotion: document.getElementById('promotion-ext-template'),
+            image: document.getElementById('image-ext-template')
+        };
+        
+        // --- Helper Functions ---
+        const getInputValue = (element, selector) => element.querySelector(selector)?.value || '';
+        const setInputValue = (element, selector, value) => { if(element.querySelector(selector)) element.querySelector(selector).value = value; };
+        const getInputChecked = (element, selector) => element.querySelector(selector)?.checked || false;
+        const setInputChecked = (element, selector, checked) => { if(element.querySelector(selector)) element.querySelector(selector).checked = checked; };
+        const splitTextarea = (value) => value.trim().split('\n').filter(line => line.trim() !== '');
+        
+        const parseKeyword = (keywordLine) => {
+            let keyword = keywordLine.trim();
+            let matchType = 'Broad';
+            if (keyword.startsWith('[') && keyword.endsWith(']')) {
+                matchType = 'Exact';
+                keyword = keyword.slice(1, -1).trim();
+            } else if (keyword.startsWith('"') && keyword.endsWith('"')) {
+                matchType = 'Phrase';
+                keyword = keyword.slice(1, -1).trim();
+            }
+            return { keyword, matchType };
+        };
+        
+        const escapeCsvField = (field) => {
+            const str = String(field || '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const createCsvRow = (data, headers) => {
+            return headers.map(header => escapeCsvField(data[header])).join(',');
+        };
+
+        const showAlert = (message) => {
+            alertModal.message.textContent = message;
+            alertModal.el.classList.add('visible');
+        };
+
+        alertModal.closeBtn.addEventListener('click', () => {
+            alertModal.el.classList.remove('visible');
+        });
+        
+        const showConfirm = (message, callback) => {
+            confirmModal.message.textContent = message;
+            confirmCallback = callback;
+            confirmModal.el.classList.add('visible');
+        };
+
+        confirmModal.cancelBtn.addEventListener('click', () => {
+            confirmModal.el.classList.remove('visible');
+            confirmCallback = null;
+        });
+
+        confirmModal.okBtn.addEventListener('click', () => {
+            if (typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            confirmModal.el.classList.remove('visible');
+            confirmCallback = null;
+        });
+
+        // --- Core Functions ---
+        const addExtension = (container, type, data = null) => {
+            const clone = templates[type].content.cloneNode(true);
+            const extElement = clone.querySelector('.extension-item');
+            container.appendChild(clone);
+            // Initialize counters for all fields within the new extension
+            extElement.querySelectorAll('[data-limit]').forEach(updateCharCounter);
+            if (data) loadExtensionData(extElement, type, data);
+            updateAssetLibraryCounters();
+            return extElement;
+        };
+
+        const addAdGroup = (adGroupsContainer, data = null) => {
+            const clone = templates.adGroup.content.cloneNode(true);
+            const adGroupItem = clone.querySelector('.ad-group-item');
+            adGroupsContainer.appendChild(adGroupItem);
+            if (data) loadSingleAdGroupData(adGroupItem, data);
+            updateAdGroupSummary(adGroupItem); // Initialize summary bar
+            return adGroupItem;
+        };
+
+        const addCampaign = (data = null) => {
+            const clone = templates.campaign.content.cloneNode(true);
+            const campaignItem = clone.querySelector('.campaign-item');
+            campaignsContainer.appendChild(campaignItem);
+            
+            if (data) {
+                loadSingleCampaignData(campaignItem, data);
+            } else {
+                addAdGroup(campaignItem.querySelector('.ad-groups-container'));
+            }
+            updateNavigator();
+            return campaignItem;
+        };
+
+        const getExtensionsFromContainer = (container) => ({
+            sitelinks: Array.from(container.querySelectorAll('.account-sitelinks-container .extension-item')).map(el => ({ text: getInputValue(el, '.sitelink-text'), url: getInputValue(el, '.sitelink-url'), desc1: getInputValue(el, '.sitelink-desc1'), desc2: getInputValue(el, '.sitelink-desc2') })),
+            call: Array.from(container.querySelectorAll('.account-call-extension-container .extension-item')).map(el => ({ phone: getInputValue(el, '.call-phone-number'), country: getInputValue(el, '.call-country') })),
+            callouts: Array.from(container.querySelectorAll('.account-callouts-container .extension-item')).map(el => ({ text: getInputValue(el, '.callout-text') })),
+            snippets: Array.from(container.querySelectorAll('.account-snippets-container .extension-item')).map(el => {
+                const values = Array.from(el.querySelectorAll('.snippet-value')).map(input => input.value.trim()).filter(v => v);
+                return { header: getInputValue(el, '.snippet-header'), values: values }; // Return an array of values
+            }),
+            promotions: Array.from(container.querySelectorAll('.account-promotions-container .extension-item')).map(el => ({ item: getInputValue(el, '.promo-item'), url: getInputValue(el, '.promo-url'), type: getInputValue(el, '.promo-type'), value: getInputValue(el, '.promo-value'), occasion: getInputValue(el, '.promo-occasion') })),
+            images: Array.from(container.querySelectorAll('.account-images-container .extension-item')).map(el => ({ asset: getInputValue(el, '.image-asset') }))
+        });
+
+        // --- Data Extraction (get... functions) ---
+        const getSingleAdGroupData = (adGroupEl) => ({
+            name: getInputValue(adGroupEl, '.ad-group-name'),
+            keywords: getInputValue(adGroupEl, '.keywords'),
+            finalUrl: getInputValue(adGroupEl, '.final-url'),
+            adgroupNegatives: getInputValue(adGroupEl, '.adgroup-negatives'),
+            headlines: getInputValue(adGroupEl, '.rsa-headlines'),
+            descriptions: getInputValue(adGroupEl, '.rsa-descriptions'),
+            isComplete: getInputChecked(adGroupEl, '.complete-toggle')
+        });
+
+        const getSingleCampaignData = (campaignEl) => ({
+            settings: {
+                name: getInputValue(campaignEl, '.campaign-name'), budget: getInputValue(campaignEl, '.campaign-budget'),
+                status: getInputValue(campaignEl, '.campaign-status'), bidStrategy: getInputValue(campaignEl, '.bid-strategy'),
+                adSchedule: getInputValue(campaignEl, '.ad-schedule'), campaignNegatives: getInputValue(campaignEl, '.campaign-negatives'),
+                searchPartners: getInputChecked(campaignEl, '.search-partners'), displayNetwork: getInputChecked(campaignEl, '.display-network'),
+                locationOption: getInputValue(campaignEl, '.location-option'),
+            },
+            locations: getInputValue(campaignEl, '.locations'),
+            adGroups: Array.from(campaignEl.querySelectorAll('.ad-group-item')).map(getSingleAdGroupData),
+            isComplete: getInputChecked(campaignEl, '.complete-toggle')
+        });
+        
+        const getAccountData = () => ({
+            clientName: document.getElementById('client-name').value,
+            clientCid: document.getElementById('client-cid').value,
+            trackingTemplate: document.getElementById('tracking-template').value,
+            urlSuffix: document.getElementById('url-suffix').value,
+            extensions: getExtensionsFromContainer(accountContainer),
+            library: {
+                headlines: document.getElementById('library-headlines').value,
+                descriptions: document.getElementById('library-descriptions').value
+            }
+        });
+
+        // --- Data Loading (load... functions) ---
+        const loadExtensions = (container, extensions) => {
+            if (!extensions) return;
+            const extMap = {
+                sitelink: '.account-sitelinks-container',
+                call: '.account-call-extension-container',
+                callout: '.account-callouts-container',
+                snippet: '.account-snippets-container',
+                promotion: '.account-promotions-container',
+                image: '.account-images-container'
+            };
+
+            Object.entries(extensions).forEach(([type, dataArray]) => {
+                if(dataArray && dataArray.length > 0 && extMap[type]){
+                    const targetContainer = container.querySelector(extMap[type]);
+                    if(targetContainer) {
+                        targetContainer.innerHTML = ''; // Clear before loading
+                        dataArray.forEach(data => addExtension(targetContainer, type, data));
+                    }
+                }
+            });
+        };
+
+        const loadExtensionData = (el, type, data) => {
+            switch(type) {
+                case 'call': 
+                    setInputValue(el, '.call-phone-number', data.phone);
+                    formatPhoneNumber(el.querySelector('.call-phone-number'));
+                    setInputValue(el, '.call-country', data.country); 
+                    break;
+                case 'sitelink': 
+                    setInputValue(el, '.sitelink-text', data.text);
+                    setInputValue(el, '.sitelink-url', data.url);
+                    setInputValue(el, '.sitelink-desc1', data.desc1);
+                    setInputValue(el, '.sitelink-desc2', data.desc2);
+                    el.querySelectorAll('[data-limit]').forEach(updateCharCounter);
+                    break;
+                case 'callout': 
+                    setInputValue(el, '.callout-text', data.text); 
+                    el.querySelectorAll('[data-limit]').forEach(updateCharCounter);
+                    break;
+                case 'snippet':
+                    setInputValue(el, '.snippet-header', data.header);
+                    const values = Array.isArray(data.values) ? data.values : (data.values.includes(';') ? data.values.split(';') : data.values.split('\n'));
+                    const valueContainer = el.querySelector('.snippet-values-container');
+                    valueContainer.innerHTML = ''; // Clear existing before loading
+                    values.forEach((value) => {
+                        addSnippetValue(valueContainer, value.trim());
+                    });
+                    break;
+                case 'promotion': 
+                    setInputValue(el, '.promo-item', data.item);
+                    setInputValue(el, '.promo-url', data.url);
+                    setInputValue(el, '.promo-type', data.type);
+                    setInputValue(el, '.promo-value', data.value);
+                    setInputValue(el, '.promo-occasion', data.occasion);
+                    el.querySelectorAll('[data-limit]').forEach(updateCharCounter);
+                    break;
+                case 'image': 
+                    const assetInput = el.querySelector('.image-asset');
+                    const dropZone = el.querySelector('.drop-zone');
+                    assetInput.value = data.asset || '';
+                    if (data.asset && data.asset.startsWith('data:image')) {
+                        updateImagePreview(dropZone, data.asset);
+                    }
+                    break;
+            }
+        };
+
+        const loadSingleAdGroupData = (adGroupEl, adGroupData) => {
+            setInputValue(adGroupEl, '.ad-group-name', adGroupData.name);
+            setInputValue(adGroupEl, '.keywords', adGroupData.keywords);
+            setInputValue(adGroupEl, '.final-url', adGroupData.finalUrl);
+            setInputValue(adGroupEl, '.adgroup-negatives', adGroupData.adgroupNegatives);
+            setInputValue(adGroupEl, '.rsa-headlines', adGroupData.headlines);
+            setInputValue(adGroupEl, '.rsa-descriptions', adGroupData.descriptions);
+            adGroupEl.querySelectorAll('.rsa-headlines, .rsa-descriptions').forEach(validateAdCopy);
+            updateAdGroupSummary(adGroupEl);
+            if (adGroupData.isComplete) {
+                const toggle = adGroupEl.querySelector('.complete-toggle');
+                toggle.checked = true;
+                toggleCompletion(toggle);
+            }
+        };
+
+        const loadSingleCampaignData = (campaignEl, campaignData) => {
+            const { settings, locations, adGroups } = campaignData;
+            setInputValue(campaignEl, '.campaign-name', settings.name);
+            setInputValue(campaignEl, '.campaign-budget', settings.budget);
+            setInputValue(campaignEl, '.campaign-status', settings.status);
+            setInputValue(campaignEl, '.bid-strategy', settings.bidStrategy);
+            setInputValue(campaignEl, '.ad-schedule', settings.adSchedule);
+            setInputValue(campaignEl, '.campaign-negatives', settings.campaignNegatives);
+            setInputChecked(campaignEl, '.search-partners', settings.searchPartners);
+            setInputChecked(campaignEl, '.display-network', settings.displayNetwork);
+            setInputValue(campaignEl, '.location-option', settings.locationOption || 'Presence');
+            setInputValue(campaignEl, '.locations', locations || '');
+            
+            const adGroupsContainer = campaignEl.querySelector('.ad-groups-container');
+            adGroupsContainer.innerHTML = '';
+            adGroups?.forEach(data => addAdGroup(adGroupsContainer, data));
+
+            if (campaignData.isComplete) {
+                const toggle = campaignEl.querySelector('.complete-toggle');
+                toggle.checked = true;
+                toggleCompletion(toggle);
+            }
+        };
+        
+        const addSnippetValue = (container, value = '') => {
+            const count = container.children.length;
+            if (count >= 10) return;
+            const div = document.createElement('div');
+            const required = count < 3 ? 'required' : '';
+            div.innerHTML = `<div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Value ${count + 1}</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input snippet-value" placeholder="Value ${count + 1}" value="${escapeHtml(value)}" ${required} data-limit="25" maxlength="25"></div>`;
+            container.appendChild(div);
+            updateCharCounter(div.querySelector('.snippet-value'));
+        };
+
+        // --- Event Delegation & Input Handling ---
+        document.body.addEventListener('click', (e) => {
+            const target = e.target;
+
+            if (target.matches('.nav-link')) {
+                e.preventDefault();
+                const element = document.getElementById(target.getAttribute('href').substring(1));
+                if (element) {
+                     if (element.classList.contains('campaign-item')) {
+                        element.querySelectorAll('.campaign-content').forEach(content => content.classList.remove('hidden'));
+                    } else if (element.classList.contains('ad-group-item')) {
+                        const parentCampaign = element.closest('.campaign-item');
+                        parentCampaign.querySelectorAll('.campaign-content').forEach(content => content.classList.remove('hidden'));
+                        element.querySelector('.ad-group-content-wrapper').classList.remove('hidden');
+                        element.querySelector('.ad-group-summary-bar').classList.add('hidden');
+                    }
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+
+            if (target.matches('.toggle-adgroups')) {
+                const adgroupsList = target.parentElement.nextElementSibling;
+                adgroupsList.style.display = adgroupsList.style.display === 'none' ? 'block' : 'none';
+                target.textContent = adgroupsList.style.display === 'none' ? '▶' : '▼';
+            }
+             if (target.matches('.focus-icon')) {
+                const campaignId = target.dataset.campaignId;
+                const campaignEl = document.getElementById(campaignId);
+                document.querySelectorAll('.campaign-item').forEach(el => el.classList.add('is-dimmed'));
+                campaignEl.classList.remove('is-dimmed');
+                campaignEl.classList.add('is-focused');
+                document.getElementById('clear-focus-btn').style.display = 'block';
+            }
+            if (target.id === 'clear-focus-btn') {
+                document.querySelectorAll('.campaign-item').forEach(el => {
+                    el.classList.remove('is-dimmed');
+                    el.classList.remove('is-focused');
+                });
+                target.style.display = 'none';
+            }
+        });
+
+        addCampaignBtn.addEventListener('click', () => {
+            addCampaign();
+        });
+        
+        multiCampaignForm.addEventListener('click', (e) => {
+            const target = e.target;
+            const campaignItem = target.closest('.campaign-item');
+            const adGroupItem = target.closest('.ad-group-item');
+
+            if (target.closest('.add-snippet-value')) {
+                const container = target.previousElementSibling;
+                addSnippetValue(container);
+            }
+            if (target.closest('.remove-campaign')) {
+                campaignItem.remove();
+                updateNavigator();
+            }
+            if (target.closest('.duplicate-campaign')) {
+                const newCampaign = addCampaign(getSingleCampaignData(campaignItem));
+                newCampaign.querySelector('.campaign-name').value += " (Copy)";
+            }
+            if (target.closest('.campaign-header')) {
+                campaignItem.querySelectorAll('.campaign-content').forEach(el => el.classList.toggle('hidden'));
+            }
+            if(target.closest('.adgroup-header') || target.closest('.ad-group-summary-bar')) {
+                const content = adGroupItem.querySelector('.ad-group-content-wrapper');
+                const summary = adGroupItem.querySelector('.ad-group-summary-bar');
+                if(content && summary) {
+                     content.classList.toggle('hidden');
+                     summary.classList.toggle('hidden');
+                }
+            }
+            if (target.closest('.add-ad-group')) {
+                addAdGroup(campaignItem.querySelector('.ad-groups-container'));
+                updateNavigator();
+            }
+            if (target.closest('.add-ext')) {
+                const btn = target.closest('.add-ext');
+                const container = target.closest('.account-item').querySelector(btn.dataset.extContainer);
+                const limit = parseInt(btn.dataset.limit, 10);
+                if (!limit || container.children.length < limit) {
+                    addExtension(container, btn.dataset.extType);
+                } else {
+                    showAlert(`Only ${limit} of this extension type is allowed.`);
+                }
+            }
+            if (target.closest('.remove-ad-group')) {
+                adGroupItem.remove();
+                updateNavigator();
+            }
+            if (target.closest('.duplicate-ad-group')) {
+                const container = adGroupItem.parentElement;
+                const newAdGroup = addAdGroup(container, getSingleAdGroupData(adGroupItem));
+                newAdGroup.querySelector('.ad-group-name').value += " (Copy)";
+                updateNavigator();
+            }
+            if (target.closest('.remove-ext')) {
+                target.closest('.extension-item').remove();
+                updateAssetLibraryCounters();
+            }
+            if (target.closest('.drop-zone')) {
+                target.closest('.drop-zone').querySelector('.image-file-input').click();
+            }
+            if (target.closest('.clear-image-btn')) {
+                clearImagePreview(target.closest('.drop-zone'));
+            }
+            if (target.matches('.collapse-all-adgroups')) {
+                const adGroups = target.closest('.input-group').querySelectorAll('.ad-group-item');
+                adGroups.forEach(ag => {
+                    ag.querySelector('.ad-group-content-wrapper').classList.add('hidden');
+                    ag.querySelector('.ad-group-summary-bar').classList.remove('hidden');
+                });
+            }
+            if (target.matches('.expand-all-adgroups')) {
+                const adGroups = target.closest('.input-group').querySelectorAll('.ad-group-item');
+                adGroups.forEach(ag => {
+                    if (!ag.querySelector('.complete-toggle').checked) {
+                        ag.querySelector('.ad-group-content-wrapper').classList.remove('hidden');
+                        ag.querySelector('.ad-group-summary-bar').classList.add('hidden');
+                    }
+                });
+            }
+        });
+        
+        const validateAdCopy = (textarea) => {
+            const limit = parseInt(textarea.dataset.limit, 10);
+            const preview = textarea.parentElement.querySelector('.live-preview');
+            const lines = textarea.value.split('\n');
+            const html = lines.map(line => {
+                const length = line.length;
+                const count = `<span class="text-gray-500 ml-2">(${length}/${limit})</span>`;
+                if (length > limit) {
+                    return `<div class="char-limit-error">${escapeHtml(line)}${count}</div>`;
+                }
+                return `<div>${escapeHtml(line)}${count}</div>`;
+            }).join('');
+            preview.innerHTML = html;
+        };
+
+        const updateCharCounter = (input) => {
+            const limit = parseInt(input.dataset.limit, 10);
+            if (!limit) return;
+            const counter = input.parentElement.querySelector('.char-counter');
+            if (!counter) return;
+
+            const length = input.value.length;
+            counter.textContent = `${length}/${limit}`;
+            if (length > limit) {
+                counter.classList.add('char-limit-error');
+                input.style.borderColor = '#ef4444';
+            } else {
+                counter.classList.remove('char-limit-error');
+                input.style.borderColor = '';
+            }
+        };
+
+        const formatPhoneNumber = (input) => {
+            const countrySelect = input.closest('.extension-item').querySelector('.call-country');
+            if (countrySelect && countrySelect.value !== 'US') {
+                return; 
+            }
+
+            const value = input.value.replace(/[^\d]/g, '');
+            const length = value.length;
+            if (length === 0) input.value = '';
+            else if (length <= 3) input.value = `(${value}`;
+            else if (length <= 6) input.value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+            else input.value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
+        };
+
+        const escapeHtml = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+        const updateAdGroupSummary = (adGroupItem) => {
+            const name = getInputValue(adGroupItem, '.ad-group-name') || 'Untitled Ad Group';
+            const keywordCount = splitTextarea(getInputValue(adGroupItem, '.keywords')).length;
+            const headlineCount = splitTextarea(getInputValue(adGroupItem, '.rsa-headlines')).length;
+            const descriptionCount = splitTextarea(getInputValue(adGroupItem, '.rsa-descriptions')).length;
+            
+            adGroupItem.querySelector('.ad-group-summary-name').textContent = name;
+            adGroupItem.querySelector('.keyword-count').textContent = `${keywordCount} Keywords`;
+            adGroupItem.querySelector('.headline-count').textContent = `H: ${headlineCount}/15`;
+            adGroupItem.querySelector('.description-count').textContent = `D: ${descriptionCount}/4`;
+        };
+        
+        const toggleCompletion = (toggle) => {
+            const isAdGroup = toggle.closest('.ad-group-item');
+            const itemElement = isAdGroup ? toggle.closest('.ad-group-item') : toggle.closest('.campaign-item');
+
+            if (isAdGroup) {
+                const summaryBar = itemElement.querySelector('.ad-group-summary-bar');
+                const contentWrapper = itemElement.querySelector('.ad-group-content-wrapper');
+                const summaryCheck = itemElement.querySelector('.completed-check-summary');
+                
+                if (toggle.checked) {
+                    summaryBar.classList.add('completed-summary');
+                    summaryCheck.style.display = 'inline';
+                    summaryBar.classList.remove('hidden');
+                    contentWrapper.classList.add('hidden');
+                } else {
+                    summaryBar.classList.remove('completed-summary');
+                    summaryCheck.style.display = 'none';
+                    summaryBar.classList.add('hidden');
+                    contentWrapper.classList.remove('hidden');
+                }
+            } else { // It's a campaign
+                const header = itemElement.querySelector('.campaign-header');
+                const check = header.querySelector('.completed-check');
+                const contents = itemElement.querySelectorAll('.campaign-content');
+                 if (toggle.checked) {
+                    header.classList.add('completed-header');
+                    check.style.display = 'inline';
+                    contents.forEach(content => content.classList.add('hidden'));
+                } else {
+                    header.classList.remove('completed-header');
+                    check.style.display = 'none';
+                    contents.forEach(content => content.classList.remove('hidden'));
+                }
+            }
+            updateNavigator();
+        };
+
+        multiCampaignForm.addEventListener('input', (e) => {
+            if (e.target.matches('.rsa-headlines, .rsa-descriptions, #library-headlines, #library-descriptions')) {
+                validateAdCopy(e.target);
+            }
+            if (e.target.matches('.keywords, .rsa-headlines, .rsa-descriptions')) {
+                const adGroupItem = e.target.closest('.ad-group-item');
+                if (adGroupItem) updateAdGroupSummary(adGroupItem);
+            }
+            if (e.target.matches('[data-limit]')) updateCharCounter(e.target);
+            if (e.target.matches('.call-phone-number')) formatPhoneNumber(e.target);
+            if (e.target.matches('.campaign-name, .ad-group-name')) {
+                 const adGroupItem = e.target.closest('.ad-group-item');
+                 if (adGroupItem) updateAdGroupSummary(adGroupItem);
+                 updateNavigator();
+            }
+            if (e.target.matches('.image-asset')) {
+                const dropZone = e.target.closest('.extension-item').querySelector('.drop-zone');
+                if (e.target.value && e.target.value.startsWith('data:image')) updateImagePreview(dropZone, e.target.value);
+                else if (!e.target.value) clearImagePreview(dropZone);
+            }
+            if (e.target.matches('.complete-toggle')) toggleCompletion(e.target);
+        });
+        
+        // --- Keyword Helper ---
+        document.getElementById('generate-keywords').addEventListener('click', () => {
+            const input = document.getElementById('keyword-helper-input');
+            const output = document.getElementById('keyword-helper-output');
+            const keywords = splitTextarea(input.value);
+            
+            const includeBroad = document.getElementById('kw-broad').checked;
+            const includePhrase = document.getElementById('kw-phrase').checked;
+            const includeExact = document.getElementById('kw-exact').checked;
+
+            const variations = keywords.flatMap(kw => {
+                const generated = [];
+                if (includeBroad) generated.push(kw);
+                if (includePhrase) generated.push(`"${kw}"`);
+                if (includeExact) generated.push(`[${kw}]`);
+                return generated;
+            }).join('\n');
+            
+            output.value = variations;
+        });
+
+        // --- Image Upload & Drag/Drop ---
+        const handleImageFile = (file, dropZone) => {
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataURL = reader.result;
+                    const assetInput = dropZone.closest('.extension-item').querySelector('.image-asset');
+                    assetInput.value = dataURL;
+                    updateImagePreview(dropZone, dataURL);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showAlert('Please select a valid image file (PNG, JPG, GIF).');
+            }
+        };
+
+        const updateImagePreview = (dropZone, src) => {
+            const previewContainer = dropZone.querySelector('.image-preview-container');
+            const previewImg = dropZone.querySelector('.image-preview');
+            const prompt = dropZone.querySelector('.image-drop-prompt');
+            
+            previewImg.src = src;
+            prompt.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+        };
+
+        const clearImagePreview = (dropZone) => {
+            const previewContainer = dropZone.querySelector('.image-preview-container');
+            const previewImg = dropZone.querySelector('.image-preview');
+            const prompt = dropZone.querySelector('.image-drop-prompt');
+            const assetInput = dropZone.closest('.extension-item').querySelector('.image-asset');
+
+            previewImg.src = '';
+            assetInput.value = '';
+            prompt.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+        };
+
+        multiCampaignForm.addEventListener('change', e => {
+            if (e.target.matches('.image-file-input')) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const dropZone = e.target.closest('.drop-zone');
+                    handleImageFile(file, dropZone);
+                }
+            }
+        });
+
+        multiCampaignForm.addEventListener('dragover', e => {
+            const dropZone = e.target.closest('.drop-zone');
+            if (dropZone) {
+                e.preventDefault();
+                dropZone.classList.add('drop-zone--over');
+            }
+        });
+
+        ['dragleave', 'dragend'].forEach(type => {
+            multiCampaignForm.addEventListener(type, e => {
+                const dropZone = e.target.closest('.drop-zone');
+                if (dropZone) {
+                    dropZone.classList.remove('drop-zone--over');
+                }
+            });
+        });
+
+        multiCampaignForm.addEventListener('drop', e => {
+            const dropZone = e.target.closest('.drop-zone');
+            if (dropZone) {
+                e.preventDefault();
+                dropZone.classList.remove('drop-zone--over');
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    handleImageFile(file, dropZone);
+                }
+            }
+        });
+
+        // --- Navigator ---
+        const getStatus = (element) => {
+            if (element.querySelector('.complete-toggle').checked) return '🟢'; // Complete (manual override)
+
+            const requiredFields = element.querySelectorAll('[required]');
+            let filledCount = 0;
+            let hasContent = false;
+            for (const field of requiredFields) {
+                if (field.value.trim() !== '') {
+                    filledCount++;
+                    hasContent = true;
+                }
+            }
+
+            if (requiredFields.length > 0 && filledCount === requiredFields.length) return '🟢'; // Complete (auto)
+            if (hasContent) return '🟡'; // In Progress
+            return '⚪'; // Not Started
+        };
+        
+        const updateNavigator = () => {
+            navList.innerHTML = '';
+            const campaigns = document.querySelectorAll('.campaign-item');
+            campaigns.forEach((campaign, campIndex) => {
+                const campaignId = `campaign-${campIndex}`;
+                campaign.id = campaignId;
+
+                const campaignName = campaign.querySelector('.campaign-name').value || `Campaign ${campIndex + 1}`;
+                const campaignStatus = getStatus(campaign);
+                
+                const campaignLi = document.createElement('li');
+                campaignLi.className = 'nav-campaign';
+                campaignLi.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="toggle-adgroups">▼</span>
+                        <a href="#${campaignId}" class="nav-link flex-grow"><span class="nav-status">${campaignStatus}</span>${escapeHtml(campaignName)}</a>
+                        <span title="Focus on this campaign" class="focus-icon" data-campaign-id="${campaignId}">👁️</span>
+                    </div>
+                `;
+                
+                const adgroupsUl = document.createElement('ul');
+                const adGroups = campaign.querySelectorAll('.ad-group-item');
+                adGroups.forEach((adGroup, agIndex) => {
+                    const adGroupId = `campaign-${campIndex}-adgroup-${agIndex}`;
+                    adGroup.id = adGroupId;
+                    
+                    const adGroupName = adGroup.querySelector('.ad-group-name').value || `Ad Group ${agIndex + 1}`;
+                    const adGroupStatus = getStatus(adGroup);
+                    
+                    const adGroupLi = document.createElement('li');
+                    adGroupLi.className = 'nav-adgroup';
+                    adGroupLi.innerHTML = `<a href="#${adGroupId}" class="nav-link"><span class="nav-status">${adGroupStatus}</span>${escapeHtml(adGroupName)}</a>`;
+                    adgroupsUl.appendChild(adGroupLi);
+                });
+
+                campaignLi.appendChild(adgroupsUl);
+                navList.appendChild(campaignLi);
+            });
+        };
+
+        document.getElementById('nav-filter').addEventListener('input', (e) => {
+            const filterText = e.target.value.toLowerCase();
+            document.querySelectorAll('.nav-campaign').forEach(li => {
+                const link = li.querySelector('a');
+                const campaignName = link.textContent.toLowerCase();
+                const adgroupLinks = li.querySelectorAll('.nav-adgroup a');
+                let hasMatch = campaignName.includes(filterText);
+
+                adgroupLinks.forEach(agLink => {
+                    const adgroupName = agLink.textContent.toLowerCase();
+                    if (adgroupName.includes(filterText)) {
+                        agLink.parentElement.style.display = '';
+                        hasMatch = true;
+                    } else {
+                        agLink.parentElement.style.display = 'none';
+                    }
+                });
+
+                li.style.display = hasMatch ? '' : 'none';
+            });
+        });
+
+
+        // --- Save / Load / Autosave ---
+        const AUTOSAVE_KEY = 'rynoCampaignBuilderAutosave';
+
+        const autoSaveBuild = () => {
+            try {
+                const data = {
+                    account: getAccountData(),
+                    campaigns: Array.from(document.querySelectorAll('.campaign-item')).map(getSingleCampaignData)
+                };
+                localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+            } catch (error) {
+                console.error("Autosave failed:", error);
+                if (error.name === 'QuotaExceededError') {
+                    showAlert("Autosave failed: Local storage is full. This can happen if you upload large images. Please save your build to a file.");
+                }
+            }
+        };
+        
+        let saveTimeout;
+        multiCampaignForm.addEventListener('input', () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                autoSaveBuild();
+                updateNavigator();
+            }, 500); 
+        });
+
+
+        const loadBuildData = (data) => {
+            try {
+                campaignsContainer.innerHTML = '';
+                document.querySelectorAll('.account-item .extension-item').forEach(el => el.remove());
+
+                const accountData = data.account || data; 
+                document.getElementById('client-name').value = accountData.clientName || '';
+                document.getElementById('client-cid').value = accountData.clientCid || '';
+                document.getElementById('tracking-template').value = accountData.trackingTemplate || '';
+                document.getElementById('url-suffix').value = accountData.urlSuffix || '';
+                loadExtensions(accountContainer, accountData.extensions);
+
+                if (accountData.library) {
+                    document.getElementById('library-headlines').value = accountData.library.headlines || '';
+                    document.getElementById('library-descriptions').value = accountData.library.descriptions || '';
+                }
+
+                if (data.campaigns && data.campaigns.length > 0) {
+                    data.campaigns.forEach(campaignData => addCampaign(campaignData));
+                } else {
+                    addCampaign();
+                }
+                updateNavigator();
+                updateAssetLibraryCounters();
+            } catch (error) {
+                showAlert('Error reading or parsing the JSON file.');
+                console.error(error);
+            }
+        };
+
+        saveBtn.addEventListener('click', () => {
+            autoSaveBuild(); 
+            const dataStr = localStorage.getItem(AUTOSAVE_KEY);
+            if (!dataStr) {
+                showAlert("No data to save.");
+                return;
+            }
+            const data = JSON.parse(dataStr);
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const clientName = (data.account.clientName || 'campaign_build').trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            link.download = `${clientName}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+
+        loadInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    loadBuildData(data);
+                } catch (err) {
+                    showAlert("Invalid JSON file.");
+                    console.error("JSON Parsing Error:", err);
+                }
+            };
+            reader.onerror = () => {
+                showAlert("Failed to read the file.");
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        });
+
+        // --- Form Submission & CSV Generation ---
+        const validateForm = () => {
+            const requiredFields = multiCampaignForm.querySelectorAll('[required]');
+            for (const field of requiredFields) {
+                if (field.offsetParent === null) {
+                    continue; 
+                }
+
+                if (!field.value.trim()) {
+                    const campaignItem = field.closest('.campaign-item');
+                    if (campaignItem) {
+                        campaignItem.querySelectorAll('.campaign-content').forEach(el => el.classList.remove('hidden'));
+                    }
+                    const detailsParent = field.closest('details');
+                    if (detailsParent && !detailsParent.open) {
+                        detailsParent.open = true;
+                    }
+                    
+                    showAlert('Please fill out all required fields. The first missing field has been highlighted.');
+                    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    field.focus();
+                    
+                    field.style.borderColor = '#ef4444';
+                    field.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.4)';
+                    setTimeout(() => {
+                        field.style.borderColor = '';
+                        field.style.boxShadow = '';
+                    }, 3000);
+
+                    return false;
+                }
+            }
+            return true;
+        };
+
+
+        multiCampaignForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+            
+            const csvRows = [];
+            const headers = [
+                'Campaign', 'Campaign status', 'Budget', 'Campaign Type', 'Networks', 'Bid Strategy Type', 'Ad Group', 'Ad group status',
+                'Keyword', 'Match type', 'Criterion Type', 'Final URL', 'Ad type', 'Ad status',
+                'Headline 1', 'Headline 2', 'Headline 3', 'Headline 4', 'Headline 5', 'Headline 6', 'Headline 7', 'Headline 8', 'Headline 9', 'Headline 10', 'Headline 11', 'Headline 12', 'Headline 13', 'Headline 14', 'Headline 15',
+                'Description 1', 'Description 2', 'Description 3', 'Description 4',
+                'Link Text', 'Description Line 1', 'Description Line 2',
+                'Header', 'Snippet Values', 'Callout text', 'Phone Number', 'Country of Phone',
+                'Promotion item', 'Promotion final URL', 'Promotion type', 'Promotion value', 'Promotion occasion',
+                'Image', 'Location', 'Ad schedule'
+            ];
+            csvRows.push(headers.join(','));
+
+            const processExtensions = (extensions) => {
+                if (!extensions) return;
+                const levelData = {};
+                extensions.callouts?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Callout text': ext.text }, headers)));
+                extensions.snippets?.forEach(ext => {
+                    ext.values.forEach(value => {
+                        csvRows.push(createCsvRow({ ...levelData, 'Header': ext.header, 'Snippet Values': value }, headers));
+                    });
+                });
+                extensions.call?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Phone Number': ext.phone, 'Country of Phone': ext.country }, headers)));
+                extensions.images?.forEach(ext => {
+                    const assetValue = ext.asset.startsWith('data:image') ? '[Image Uploaded in Builder]' : ext.asset;
+                    csvRows.push(createCsvRow({ ...levelData, 'Image': assetValue }, headers))
+                });
+                extensions.promotions?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Promotion item': ext.item, 'Promotion final URL': ext.url, 'Promotion type': ext.type, 'Promotion value': ext.value, 'Promotion occasion': ext.occasion }, headers)));
+                extensions.sitelinks?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Link Text': ext.text, 'Final URL': ext.url, 'Description Line 1': ext.desc1, 'Description Line 2': ext.desc2 }, headers)));
+            };
+            
+            autoSaveBuild();
+            const fullDataStr = localStorage.getItem(AUTOSAVE_KEY);
+            if (!fullDataStr) {
+                showAlert("No data to export.");
+                return;
+            }
+            const fullData = JSON.parse(fullDataStr);
+
+            processExtensions(fullData.account.extensions);
+
+            fullData.campaigns.forEach(campaignData => {
+                const campaignName = campaignData.settings.name;
+                const campaignLevelData = { 'Campaign': campaignName };
+                const networks = ['Google search'];
+                if (campaignData.settings.searchPartners) networks.push('Search partners');
+                if (campaignData.settings.displayNetwork) networks.push('Display');
+                
+                const campaignRow = {
+                    ...campaignLevelData, 'Campaign status': campaignData.settings.status,
+                    'Budget': campaignData.settings.budget, 'Campaign Type': 'Search',
+                    'Networks': networks.join(';'), 'Bid Strategy Type': campaignData.settings.bidStrategy,
+                };
+                csvRows.push(createCsvRow(campaignRow, headers));
+
+                splitTextarea(campaignData.locations).forEach(loc => csvRows.push(createCsvRow({ ...campaignLevelData, 'Location': loc }, headers)));
+                splitTextarea(campaignData.settings.adSchedule).forEach(sch => csvRows.push(createCsvRow({ ...campaignLevelData, 'Ad schedule': sch }, headers)));
+                splitTextarea(campaignData.settings.campaignNegatives).forEach(kw => {
+                    const { keyword, matchType } = parseKeyword(kw);
+                    csvRows.push(createCsvRow({ ...campaignLevelData, 'Keyword': keyword, 'Match type': matchType, 'Criterion Type': 'Negative' }, headers));
+                });
+
+                campaignData.adGroups.forEach(adGroupData => {
+                    if (splitTextarea(adGroupData.keywords).length === 0) {
+                        return; 
+                    }
+                    const adGroupName = adGroupData.name;
+                    const adGroupLevelData = { ...campaignLevelData, 'Ad Group': adGroupName };
+                    
+                    const adRow = {
+                        ...adGroupLevelData, 'Ad group status': 'Paused',
+                        'Final URL': adGroupData.finalUrl, 'Ad type': 'Responsive search ad', 'Ad status': 'Paused'
+                    };
+                    splitTextarea(adGroupData.headlines).slice(0, 15).forEach((h, i) => adRow[`Headline ${i + 1}`] = h);
+                    splitTextarea(adGroupData.descriptions).slice(0, 4).forEach((d, i) => adRow[`Description ${i + 1}`] = d);
+                    csvRows.push(createCsvRow(adRow, headers));
+
+                    splitTextarea(adGroupData.keywords).forEach(kw => {
+                        const { keyword, matchType } = parseKeyword(kw);
+                        csvRows.push(createCsvRow({ ...adGroupLevelData, 'Keyword': keyword, 'Match type': matchType, 'Criterion Type': 'Keyword' }, headers));
+                    });
+                    
+                    splitTextarea(adGroupData.adgroupNegatives).forEach(kw => {
+                        const { keyword, matchType } = parseKeyword(kw);
+                        csvRows.push(createCsvRow({ ...adGroupLevelData, 'Keyword': keyword, 'Match type': matchType, 'Criterion Type': 'Negative' }, headers));
+                    });
+                });
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            const clientName = (fullData.account.clientName || 'campaign').trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            link.setAttribute("href", url);
+            link.setAttribute("download", `google_ads_${clientName}_upload.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // --- New QoL Feature Functions ---
+        
+        // Clear All
+        const clearAllData = () => {
+            // Clear account fields
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-cid').value = '';
+            document.getElementById('tracking-template').value = '';
+            document.getElementById('url-suffix').value = '';
+            document.getElementById('library-headlines').value = '';
+            document.getElementById('library-descriptions').value = '';
+            
+            // Clear extensions
+            document.querySelectorAll('.account-sitelinks-container, .account-call-extension-container, .account-callouts-container, .account-snippets-container, .account-images-container, .account-promotions-container').forEach(c => c.innerHTML = '');
+
+            // Clear campaigns
+            campaignsContainer.innerHTML = '';
+            
+            // Add one fresh campaign
+            addCampaign();
+
+            // Clear local storage and update UI
+            localStorage.removeItem(AUTOSAVE_KEY);
+            updateNavigator();
+            updateAssetLibraryCounters();
+            validateAdCopy(document.getElementById('library-headlines'));
+            validateAdCopy(document.getElementById('library-descriptions'));
+        };
+
+        document.getElementById('clear-all-btn').addEventListener('click', () => {
+            showConfirm('Are you sure you want to clear the entire build? This action cannot be undone.', clearAllData);
+        });
+
+        // Case Converter
+        const caseConverterInput = document.getElementById('case-converter-input');
+        const caseConverterOutput = document.getElementById('case-converter-output');
+        const caseConverterInputCounter = document.getElementById('case-converter-input-counter');
+        const caseConverterOutputCounter = document.getElementById('case-converter-output-counter');
+
+        caseConverterInput.addEventListener('input', () => {
+            caseConverterInputCounter.textContent = `Characters: ${caseConverterInput.value.length}`;
+        });
+
+        document.getElementById('convert-sentence-case').addEventListener('click', () => {
+            const text = caseConverterInput.value;
+            const converted = text.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, c => c.toUpperCase());
+            caseConverterOutput.value = converted;
+            caseConverterOutputCounter.textContent = `Characters: ${converted.length}`;
+        });
+
+        document.getElementById('convert-lower-case').addEventListener('click', () => {
+            const converted = caseConverterInput.value.toLowerCase();
+            caseConverterOutput.value = converted;
+            caseConverterOutputCounter.textContent = `Characters: ${converted.length}`;
+        });
+
+        document.getElementById('convert-upper-case').addEventListener('click', () => {
+            const converted = caseConverterInput.value.toUpperCase();
+            caseConverterOutput.value = converted;
+            caseConverterOutputCounter.textContent = `Characters: ${converted.length}`;
+        });
+
+        document.getElementById('convert-title-case').addEventListener('click', () => {
+            const converted = caseConverterInput.value.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            caseConverterOutput.value = converted;
+            caseConverterOutputCounter.textContent = `Characters: ${converted.length}`;
+        });
+
+
+        // Find and Replace
+        document.getElementById('find-replace-btn').addEventListener('click', () => {
+            const findText = document.getElementById('find-text').value;
+            const replaceText = document.getElementById('replace-text').value;
+            if (!findText) {
+                showAlert("Please enter text to find.");
+                return;
+            }
+            const textFields = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
+            let replacements = 0;
+            textFields.forEach(field => {
+                if (field.value.includes(findText)) {
+                    field.value = field.value.replace(new RegExp(escapeHtml(findText), 'g'), replaceText);
+                    replacements++;
+                }
+            });
+            showAlert(`Replaced ${replacements} instance(s) of "${findText}".`);
+            updateNavigator();
+        });
+
+        // Ad Copy Library
+        libraryModal.cancelBtn.addEventListener('click', () => libraryModal.el.classList.remove('visible'));
+        libraryModal.insertBtn.addEventListener('click', () => {
+            if (!activeTextareaForLibrary) return;
+            const selectedItems = [];
+            libraryModal.body.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedItems.push(checkbox.value);
+            });
+
+            if (selectedItems.length > 0) {
+                const existingText = activeTextareaForLibrary.value.trim();
+                const newText = (existingText ? existingText + '\n' : '') + selectedItems.join('\n');
+                activeTextareaForLibrary.value = newText;
+                // Manually trigger input event for live previews and autosave
+                activeTextareaForLibrary.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            libraryModal.el.classList.remove('visible');
+        });
+
+        multiCampaignForm.addEventListener('click', e => {
+            if (e.target.matches('.insert-library-btn')) {
+                const type = e.target.dataset.type; // 'headlines' or 'descriptions'
+                activeTextareaForLibrary = e.target.closest('.md\\:col-span-1').querySelector(`.rsa-${type}`);
+                
+                const libraryContent = document.getElementById(`library-${type}`).value;
+                const items = splitTextarea(libraryContent);
+                
+                libraryModal.title.textContent = `Insert Reusable ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+                libraryModal.body.innerHTML = items.map(item => `
+                    <label class="library-item">
+                        <input type="checkbox" class="form-checkbox h-4 w-4 mr-3" value="${escapeHtml(item)}">
+                        <span class="text-sm">${escapeHtml(item)}</span>
+                    </label>
+                `).join('');
+                
+                libraryModal.el.classList.add('visible');
+            }
+        });
+
+        // Asset Library Counters
+        const updateAssetLibraryCounters = () => {
+            document.querySelectorAll('#account-level-container .ext-counter').forEach(counter => {
+                const type = counter.dataset.extType;
+                let container;
+                if (type === 'call') {
+                     container = accountContainer.querySelector('.account-call-extension-container');
+                } else {
+                     container = accountContainer.querySelector(`.account-${type}s-container`);
+                }
+                
+                if (container) {
+                    const count = container.querySelectorAll('.extension-item').length;
+                    if (count > 0) {
+                        counter.textContent = count;
+                        counter.style.display = 'inline-block';
+                    } else {
+                        counter.style.display = 'none';
+                    }
+                }
+            });
+        };
+
+        // --- Initialize ---
+        const savedSession = localStorage.getItem(AUTOSAVE_KEY);
+        if (savedSession) {
+            loadBuildData(JSON.parse(savedSession));
+        } else {
+            addCampaign();
+        }
+
+        document.querySelectorAll('[data-limit]').forEach(updateCharCounter);
+        document.querySelectorAll('.rsa-headlines, .rsa-descriptions, #library-headlines, #library-descriptions').forEach(validateAdCopy);
+        updateNavigator();
+        updateAssetLibraryCounters();
+    });
+    </script>
+</body>
+</html>
+
+

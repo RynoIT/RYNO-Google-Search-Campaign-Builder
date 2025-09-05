@@ -36,9 +36,9 @@
         .modal-close-btn { margin-top: 1rem; }
         .drop-zone--over { border-color: #345177; background-color: #f0f4f8; }
 
-        /* New Styles for Navigator and Completion Status */
+        /* Styles for Navigator and Completion Status */
         .page-wrapper { display: flex; }
-        #navigator { position: sticky; top: 0; left: 0; width: 280px; height: 100vh; background-color: #f8fafc; border-right: 1px solid #e2e8f0; padding: 1rem; overflow-y: auto; flex-shrink: 0; }
+        #navigator { position: sticky; top: 0; left: 0; width: 320px; height: 100vh; background-color: #f8fafc; border-right: 1px solid #e2e8f0; padding: 1rem; overflow-y: auto; flex-shrink: 0; }
         #main-content { flex-grow: 1; }
         #navigator h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; }
         #navigator ul { list-style: none; padding: 0; }
@@ -58,6 +58,16 @@
         .ad-group-summary-bar { padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; cursor: pointer; }
         .summary-stats { font-size: 0.8rem; color: #64748b; }
         .ext-counter { background-color: #e2e8f0; color: #475569; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.5rem; border-radius: 9999px; }
+        
+        /* New Styles for Enhancements */
+        .dragging { opacity: 0.5; background: #c7d2fe; }
+        .nav-draggable { cursor: grab; }
+        .ad-strength-indicator { padding: 0.5rem; border-radius: 0.375rem; font-size: 0.8rem; text-align: center; font-weight: 500; }
+        .ad-strength-poor { background-color: #fee2e2; color: #b91c1c; }
+        .ad-strength-average { background-color: #fef3c7; color: #b45309; }
+        .ad-strength-good { background-color: #dcfce7; color: #166534; }
+        .ad-strength-excellent { background-color: #dbeafe; color: #1e40af; }
+        .token-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -72,6 +82,15 @@
                 <input type="text" id="nav-filter" class="form-input" placeholder="Filter campaigns...">
                 <button id="clear-focus-btn" class="btn-secondary w-full mt-2" style="display: none;">Clear Focus</button>
             </div>
+            <!-- Bulk Actions -->
+            <div id="bulk-actions-container" class="mb-4 p-2 border rounded-md bg-gray-200" style="display: none;">
+                <h3 class="text-sm font-semibold mb-2">Bulk Actions</h3>
+                <div class="space-y-2">
+                     <button id="bulk-delete" class="btn-secondary bg-red-200 text-red-800 hover:bg-red-300 w-full text-xs">Delete Selected</button>
+                     <button id="bulk-complete" class="btn-secondary w-full text-xs">Mark Selected as Done</button>
+                     <button id="bulk-incomplete" class="btn-secondary w-full text-xs">Mark Selected as Not Done</button>
+                </div>
+            </div>
             <ul id="nav-list"></ul>
         </nav>
 
@@ -83,75 +102,88 @@
 
             <!-- Tools Section -->
             <div id="builder-tools-container" class="mb-6 bg-white p-4 rounded-lg shadow">
-                 <details>
-                    <summary class="cursor-pointer text-lg font-semibold text-gray-800">Builder Tools</summary>
-                    <div class="mt-4 space-y-4">
-                        <!-- Case Converter -->
-                        <div class="input-group">
-                            <div class="flex justify-between items-center mb-4">
-                                <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Case Converter & Character Counter</h4>
-                                <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Input Text</label>
-                                    <textarea id="case-converter-input" class="form-textarea" rows="5"></textarea>
-                                    <div id="case-converter-input-counter" class="text-xs text-right text-gray-500 mt-1">Characters: 0</div>
+                    <details>
+                        <summary class="cursor-pointer text-lg font-semibold text-gray-800">Builder Tools</summary>
+                        <div class="mt-4 space-y-4">
+                            <!-- Bulk Campaign Generator (Token System) -->
+                            <div class="input-group">
+                                <h4 class="text-lg font-semibold text-gray-700">Bulk Campaign Generator</h4>
+                                <p class="text-sm text-gray-600 mb-2">Use the first campaign as a template. Define tokens (e.g., `{LOCATION}`) and provide values to generate multiple campaign variations.</p>
+                                <div id="token-container" class="space-y-2 mb-2">
+                                    <div class="token-item">
+                                        <input type="text" class="form-input token-key w-1/3" placeholder="{TOKEN}">
+                                        <textarea class="form-textarea token-values w-2/3" rows="1" placeholder="Value 1, Value 2, Value 3... (comma separated)"></textarea>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Output Text</label>
-                                    <textarea id="case-converter-output" class="form-textarea" rows="5" readonly></textarea>
-                                    <div id="case-converter-output-counter" class="text-xs text-right text-gray-500 mt-1">Characters: 0</div>
+                                <button type="button" id="add-token-btn" class="btn-secondary btn-sm mb-4">+ Add Token</button>
+                                <button type="button" id="generate-bulk-campaigns-btn" class="btn-primary w-full">Generate Campaigns</button>
+                            </div>
+                            <!-- Case Converter -->
+                            <div class="input-group">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Case Converter & Character Counter</h4>
+                                    <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Input Text</label>
+                                        <textarea id="case-converter-input" class="form-textarea" rows="5"></textarea>
+                                        <div id="case-converter-input-counter" class="text-xs text-right text-gray-500 mt-1">Characters: 0</div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Output Text</label>
+                                        <textarea id="case-converter-output" class="form-textarea" rows="5" readonly></textarea>
+                                        <div id="case-converter-output-counter" class="text-xs text-right text-gray-500 mt-1">Characters: 0</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 flex items-center space-x-2">
+                                    <button type="button" id="convert-sentence-case" class="btn-secondary btn-sm">Sentence case</button>
+                                    <button type="button" id="convert-lower-case" class="btn-secondary btn-sm">lower case</button>
+                                    <button type="button" id="convert-upper-case" class="btn-secondary btn-sm">UPPER CASE</button>
+                                    <button type="button" id="convert-title-case" class="btn-secondary btn-sm">Title Case</button>
                                 </div>
                             </div>
-                            <div class="mt-2 flex items-center space-x-2">
-                                <button type="button" id="convert-sentence-case" class="btn-secondary btn-sm">Sentence case</button>
-                                <button type="button" id="convert-lower-case" class="btn-secondary btn-sm">lower case</button>
-                                <button type="button" id="convert-upper-case" class="btn-secondary btn-sm">UPPER CASE</button>
-                                <button type="button" id="convert-title-case" class="btn-secondary btn-sm">Title Case</button>
+                            <!-- Keyword Helper -->
+                            <div class="input-group">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Keyword Match Type Helper</h4>
+                                    <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Paste Keywords (one per line)</label>
+                                        <textarea id="keyword-helper-input" class="form-textarea" rows="5"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Generated Keywords</label>
+                                        <textarea id="keyword-helper-output" class="form-textarea" rows="5" readonly></textarea>
+                                    </div>
+                                </div>
+                                <div class="mt-2 flex items-center space-x-4">
+                                    <button id="generate-keywords" class="btn-secondary">Generate</button>
+                                    <div class="flex items-center space-x-3 text-sm text-gray-700">
+                                        <span>Include:</span>
+                                        <label class="flex items-center"><input type="checkbox" id="kw-broad" class="form-checkbox" checked> <span class="ml-1">Broad</span></label>
+                                        <label class="flex items-center"><input type="checkbox" id="kw-phrase" class="form-checkbox" checked> <span class="ml-1">Phrase</span></label>
+                                        <label class="flex items-center"><input type="checkbox" id="kw-exact" class="form-checkbox" checked> <span class="ml-1">Exact</span></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Find and Replace -->
+                            <div class="input-group">
+                                 <div class="flex justify-between items-center mb-4">
+                                    <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Find & Replace</h4>
+                                    <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                                </div>
+                                 <p class="text-sm text-gray-600 mb-2">Perform a case-sensitive find and replace across all text fields in your build.</p>
+                                 <div class="flex space-x-2">
+                                     <input type="text" id="find-text" class="form-input" placeholder="Find text">
+                                     <input type="text" id="replace-text" class="form-input" placeholder="Replace with">
+                                     <button type="button" id="find-replace-btn" class="btn-secondary">Replace All</button>
+                                 </div>
                             </div>
                         </div>
-                        <!-- Keyword Helper -->
-                        <div class="input-group">
-                            <div class="flex justify-between items-center mb-4">
-                                <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Keyword Match Type Helper</h4>
-                                <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Paste Keywords (one per line)</label>
-                                    <textarea id="keyword-helper-input" class="form-textarea" rows="5"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Generated Keywords</label>
-                                    <textarea id="keyword-helper-output" class="form-textarea" rows="5" readonly></textarea>
-                                </div>
-                            </div>
-                            <div class="mt-2 flex items-center space-x-4">
-                                <button id="generate-keywords" class="btn-secondary">Generate</button>
-                                <div class="flex items-center space-x-3 text-sm text-gray-700">
-                                    <span>Include:</span>
-                                    <label class="flex items-center"><input type="checkbox" id="kw-broad" class="form-checkbox" checked> <span class="ml-1">Broad</span></label>
-                                    <label class="flex items-center"><input type="checkbox" id="kw-phrase" class="form-checkbox" checked> <span class="ml-1">Phrase</span></label>
-                                    <label class="flex items-center"><input type="checkbox" id="kw-exact" class="form-checkbox" checked> <span class="ml-1">Exact</span></label>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Find and Replace -->
-                        <div class="input-group">
-                             <div class="flex justify-between items-center mb-4">
-                                <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Find & Replace</h4>
-                                <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
-                            </div>
-                             <p class="text-sm text-gray-600 mb-2">Perform a case-sensitive find and replace across all text fields in your build.</p>
-                             <div class="flex space-x-2">
-                                 <input type="text" id="find-text" class="form-input" placeholder="Find text">
-                                 <input type="text" id="replace-text" class="form-input" placeholder="Replace with">
-                                 <button type="button" id="find-replace-btn" class="btn-secondary">Replace All</button>
-                             </div>
-                        </div>
-                    </div>
-                </details>
+                    </details>
             </div>
 
             <form id="multi-campaign-form" novalidate>
@@ -181,24 +213,24 @@
                             </div>
                         </div>
 
-                         <!-- Ad Copy Library -->
+                        <!-- Ad Copy Library -->
                         <div class="input-group">
-                             <details>
-                                <summary><h3 class="text-xl font-semibold text-gray-700 inline">Ad Copy Library</h3></summary>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Reusable Headlines (one per line)</label>
-                                        <textarea id="library-headlines" class="form-textarea" data-limit="30" rows="6"></textarea>
-                                        <div class="live-preview library-headlines-preview"></div>
+                                <details>
+                                    <summary><h3 class="text-xl font-semibold text-gray-700 inline">Ad Copy Library</h3></summary>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Reusable Headlines (one per line)</label>
+                                            <textarea id="library-headlines" class="form-textarea" data-limit="30" rows="6"></textarea>
+                                            <div class="live-preview library-headlines-preview"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Reusable Descriptions (one per line)</label>
+                                            <textarea id="library-descriptions" class="form-textarea" data-limit="90" rows="6"></textarea>
+                                            <div class="live-preview library-descriptions-preview"></div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Reusable Descriptions (one per line)</label>
-                                        <textarea id="library-descriptions" class="form-textarea" data-limit="90" rows="6"></textarea>
-                                        <div class="live-preview library-descriptions-preview"></div>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">Save common ad copy here to quickly insert into any ad group below.</p>
-                             </details>
+                                    <p class="text-xs text-gray-500 mt-1">Save common ad copy here to quickly insert into any ad group below.</p>
+                                </details>
                         </div>
 
                         <div class="input-group">
@@ -346,6 +378,11 @@
                                 <button type="button" class="btn-secondary btn-sm insert-library-btn" data-type="headlines">Library</button>
                              </div>
                         </div>
+                         <!-- Ad Strength Indicator -->
+                        <div class="mb-2">
+                             <div class="ad-strength-indicator">Ad Strength: Poor</div>
+                             <ul class="ad-strength-tips text-xs list-disc list-inside mt-1 text-gray-600"></ul>
+                        </div>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Headlines (one per line, max 15)</label>
@@ -386,26 +423,16 @@
             <div class="grid grid-cols-1 gap-4">
                 <div>
                     <label class="block text-sm font-medium">Image Upload</label>
-                    <div class="mt-1 drop-zone flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer">
-                        <div class="space-y-1 text-center image-drop-prompt">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                            <p class="text-sm text-gray-600">
-                                <span class="font-medium text-indigo-600 hover:text-indigo-500">Upload a file</span> or drag and drop
-                            </p>
-                            <p class="text-xs text-gray-500">PNG, JPG, GIF</p>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <div class="relative flex-grow focus-within:z-10">
+                            <label for="image-file-input" class="cursor-pointer bg-gray-50 border border-gray-300 rounded-l-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                                <span>Upload</span>
+                                <input type="file" class="image-file-input hidden" accept="image/png, image/jpeg, image/gif">
+                            </label>
                         </div>
-                        <div class="image-preview-container hidden text-center">
-                             <img class="image-preview max-h-32 mx-auto rounded-md" src="" alt="Image Preview">
-                             <button type="button" class="clear-image-btn remove-btn text-xs mt-1">Remove Image</button>
-                        </div>
-                        <input type="file" class="image-file-input hidden" accept="image/png, image/jpeg, image/gif">
+                        <input type="text" class="form-input image-asset rounded-l-none" placeholder="Or paste image URL / enter Asset Name">
                     </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Or Image URL / Asset ID</label>
-                    <input type="text" class="form-input image-asset" placeholder="https://example.com/image.jpg or 123456789">
+                     <p class="text-xs text-gray-500 mt-1">Note: Uploaded images won't be saved in the build file. Please upload them separately in Google Ads and reference them by the same file name.</p>
                 </div>
             </div>
         </div>
@@ -472,6 +499,7 @@
         const loadInput = document.getElementById('load-build-input');
         const addCampaignBtn = document.getElementById('add-campaign');
         const navList = document.getElementById('nav-list');
+        const bulkActionsContainer = document.getElementById('bulk-actions-container');
 
         // Modals
         const alertModal = {
@@ -585,6 +613,7 @@
             adGroupsContainer.appendChild(adGroupItem);
             if (data) loadSingleAdGroupData(adGroupItem, data);
             updateAdGroupSummary(adGroupItem); // Initialize summary bar
+            updateAdStrength(adGroupItem); // Initialize Ad Strength
             return adGroupItem;
         };
 
@@ -608,9 +637,10 @@
             callouts: Array.from(container.querySelectorAll('.account-callouts-container .extension-item')).map(el => ({ text: getInputValue(el, '.callout-text') })),
             snippets: Array.from(container.querySelectorAll('.account-snippets-container .extension-item')).map(el => {
                 const values = Array.from(el.querySelectorAll('.snippet-value')).map(input => input.value.trim()).filter(v => v);
-                return { header: getInputValue(el, '.snippet-header'), values: values }; // Return an array of values
+                return { header: getInputValue(el, '.snippet-header'), values: values };
             }),
             promotions: Array.from(container.querySelectorAll('.account-promotions-container .extension-item')).map(el => ({ item: getInputValue(el, '.promo-item'), url: getInputValue(el, '.promo-url'), type: getInputValue(el, '.promo-type'), value: getInputValue(el, '.promo-value'), occasion: getInputValue(el, '.promo-occasion') })),
+             // CHANGE #3: Save image file name instead of base64 data
             images: Array.from(container.querySelectorAll('.account-images-container .extension-item')).map(el => ({ asset: getInputValue(el, '.image-asset') }))
         });
 
@@ -708,13 +738,9 @@
                     setInputValue(el, '.promo-occasion', data.occasion);
                     el.querySelectorAll('[data-limit]').forEach(updateCharCounter);
                     break;
+                // CHANGE #3: Handle loading image file names
                 case 'image': 
-                    const assetInput = el.querySelector('.image-asset');
-                    const dropZone = el.querySelector('.drop-zone');
-                    assetInput.value = data.asset || '';
-                    if (data.asset && data.asset.startsWith('data:image')) {
-                        updateImagePreview(dropZone, data.asset);
-                    }
+                    setInputValue(el, '.image-asset', data.asset || '');
                     break;
             }
         };
@@ -728,6 +754,7 @@
             setInputValue(adGroupEl, '.rsa-descriptions', adGroupData.descriptions);
             adGroupEl.querySelectorAll('.rsa-headlines, .rsa-descriptions').forEach(validateAdCopy);
             updateAdGroupSummary(adGroupEl);
+            updateAdStrength(adGroupEl);
             if (adGroupData.isComplete) {
                 const toggle = adGroupEl.querySelector('.complete-toggle');
                 toggle.checked = true;
@@ -778,7 +805,7 @@
                 const link = target.closest('.nav-link');
                 const element = document.getElementById(link.getAttribute('href').substring(1));
                 if (element) {
-                     if (element.id === 'builder-tools-container') {
+                    if (element.id === 'builder-tools-container') {
                         element.querySelector('details').open = true;
                     } else if (element.classList.contains('campaign-item')) {
                         element.querySelectorAll('.campaign-content').forEach(content => content.classList.remove('hidden'));
@@ -873,12 +900,6 @@
             if (target.closest('.remove-ext')) {
                 target.closest('.extension-item').remove();
                 updateAssetLibraryCounters();
-            }
-            if (target.closest('.drop-zone')) {
-                target.closest('.drop-zone').querySelector('.image-file-input').click();
-            }
-            if (target.closest('.clear-image-btn')) {
-                clearImagePreview(target.closest('.drop-zone'));
             }
             if (target.matches('.collapse-all-adgroups')) {
                 const adGroups = target.closest('.input-group').querySelectorAll('.ad-group-item');
@@ -1001,7 +1022,10 @@
             }
             if (e.target.matches('.keywords, .rsa-headlines, .rsa-descriptions')) {
                 const adGroupItem = e.target.closest('.ad-group-item');
-                if (adGroupItem) updateAdGroupSummary(adGroupItem);
+                if (adGroupItem) {
+                    updateAdGroupSummary(adGroupItem);
+                    updateAdStrength(adGroupItem);
+                }
             }
             if (e.target.matches('[data-limit]')) updateCharCounter(e.target);
             if (e.target.matches('.call-phone-number')) formatPhoneNumber(e.target);
@@ -1009,11 +1033,6 @@
                  const adGroupItem = e.target.closest('.ad-group-item');
                  if (adGroupItem) updateAdGroupSummary(adGroupItem);
                  updateNavigator();
-            }
-            if (e.target.matches('.image-asset')) {
-                const dropZone = e.target.closest('.extension-item').querySelector('.drop-zone');
-                if (e.target.value && e.target.value.startsWith('data:image')) updateImagePreview(dropZone, e.target.value);
-                else if (!e.target.value) clearImagePreview(dropZone);
             }
             if (e.target.matches('.complete-toggle')) toggleCompletion(e.target);
         });
@@ -1039,84 +1058,94 @@
             output.value = variations;
         });
 
-        // --- Image Upload & Drag/Drop ---
-        const handleImageFile = (file, dropZone) => {
+        // CHANGE #3: Updated Image Upload Handling
+        const handleImageFile = (file, assetInput) => {
             if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const dataURL = reader.result;
-                    const assetInput = dropZone.closest('.extension-item').querySelector('.image-asset');
-                    assetInput.value = dataURL;
-                    updateImagePreview(dropZone, dataURL);
-                };
-                reader.readAsDataURL(file);
+                 // We no longer read as DataURL. Just use the file name.
+                 assetInput.value = file.name;
+                 // Dispatch an input event for autosave
+                 assetInput.dispatchEvent(new Event('input', { bubbles: true }));
             } else {
                 showAlert('Please select a valid image file (PNG, JPG, GIF).');
             }
-        };
-
-        const updateImagePreview = (dropZone, src) => {
-            const previewContainer = dropZone.querySelector('.image-preview-container');
-            const previewImg = dropZone.querySelector('.image-preview');
-            const prompt = dropZone.querySelector('.image-drop-prompt');
-            
-            previewImg.src = src;
-            prompt.classList.add('hidden');
-            previewContainer.classList.remove('hidden');
-        };
-
-        const clearImagePreview = (dropZone) => {
-            const previewContainer = dropZone.querySelector('.image-preview-container');
-            const previewImg = dropZone.querySelector('.image-preview');
-            const prompt = dropZone.querySelector('.image-drop-prompt');
-            const assetInput = dropZone.closest('.extension-item').querySelector('.image-asset');
-
-            previewImg.src = '';
-            assetInput.value = '';
-            prompt.classList.remove('hidden');
-            previewContainer.classList.add('hidden');
         };
 
         multiCampaignForm.addEventListener('change', e => {
             if (e.target.matches('.image-file-input')) {
                 if (e.target.files.length > 0) {
                     const file = e.target.files[0];
-                    const dropZone = e.target.closest('.drop-zone');
-                    handleImageFile(file, dropZone);
+                    const assetInput = e.target.closest('.extension-item').querySelector('.image-asset');
+                    handleImageFile(file, assetInput);
                 }
             }
         });
 
-        multiCampaignForm.addEventListener('dragover', e => {
-            const dropZone = e.target.closest('.drop-zone');
-            if (dropZone) {
-                e.preventDefault();
-                dropZone.classList.add('drop-zone--over');
+
+        // --- Navigator, Drag/Drop & Bulk Actions ---
+        let draggedItem = null;
+
+        navList.addEventListener('dragstart', e => {
+            if(e.target.classList.contains('nav-draggable')) {
+                draggedItem = e.target.closest('li');
+                setTimeout(() => {
+                    draggedItem.classList.add('dragging');
+                }, 0);
             }
         });
 
-        ['dragleave', 'dragend'].forEach(type => {
-            multiCampaignForm.addEventListener(type, e => {
-                const dropZone = e.target.closest('.drop-zone');
-                if (dropZone) {
-                    dropZone.classList.remove('drop-zone--over');
+        navList.addEventListener('dragend', () => {
+            if(draggedItem) {
+                draggedItem.classList.remove('dragging');
+                draggedItem = null;
+                 // Sync main content order with navigator order
+                const newOrderIds = Array.from(navList.querySelectorAll('.nav-campaign > div a')).map(a => a.hash.substring(1));
+                const parent = campaignsContainer;
+                const elements = Array.from(parent.children);
+                
+                const orderedElements = newOrderIds.map(id => elements.find(el => el.id === id));
+                
+                // Remove existing elements
+                while (parent.firstChild) {
+                    parent.removeChild(parent.firstChild);
                 }
-            });
+                
+                // Append in new order
+                orderedElements.forEach(el => {
+                    if(el) parent.appendChild(el);
+                });
+
+                // Regenerate navigator to fix IDs and links after reordering
+                updateNavigator();
+            }
         });
 
-        multiCampaignForm.addEventListener('drop', e => {
-            const dropZone = e.target.closest('.drop-zone');
-            if (dropZone) {
-                e.preventDefault();
-                dropZone.classList.remove('drop-zone--over');
-                if (e.dataTransfer.files.length > 0) {
-                    const file = e.dataTransfer.files[0];
-                    handleImageFile(file, dropZone);
+        navList.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(navList, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable) {
+                 if (afterElement == null) {
+                    navList.appendChild(draggable);
+                } else {
+                    navList.insertBefore(draggable, afterElement);
                 }
             }
         });
 
-        // --- Navigator ---
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.nav-campaign:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+        
         const getStatus = (element) => {
             if (element.querySelector('.complete-toggle').checked) return '🟢'; // Complete (manual override)
 
@@ -1146,9 +1175,12 @@
                 const campaignStatus = getStatus(campaign);
                 
                 const campaignLi = document.createElement('li');
-                campaignLi.className = 'nav-campaign';
+                campaignLi.className = 'nav-campaign nav-draggable';
+                campaignLi.setAttribute('draggable', true);
+                campaignLi.dataset.id = campaignId;
                 campaignLi.innerHTML = `
                     <div class="flex items-center">
+                        <input type="checkbox" class="bulk-checkbox form-checkbox mr-2" data-type="campaign" data-id="${campaignId}">
                         <span class="toggle-adgroups">▼</span>
                         <a href="#${campaignId}" class="nav-link flex-grow"><span class="nav-status">${campaignStatus}</span>${escapeHtml(campaignName)}</a>
                         <span title="Focus on this campaign" class="focus-icon" data-campaign-id="${campaignId}">👁️</span>
@@ -1166,7 +1198,8 @@
                     
                     const adGroupLi = document.createElement('li');
                     adGroupLi.className = 'nav-adgroup';
-                    adGroupLi.innerHTML = `<a href="#${adGroupId}" class="nav-link"><span class="nav-status">${adGroupStatus}</span>${escapeHtml(adGroupName)}</a>`;
+                    adGroupLi.dataset.id = adGroupId;
+                    adGroupLi.innerHTML = `<div class="flex items-center"><input type="checkbox" class="bulk-checkbox form-checkbox mr-2" data-type="adgroup" data-id="${adGroupId}"><a href="#${adGroupId}" class="nav-link flex-grow"><span class="nav-status">${adGroupStatus}</span>${escapeHtml(adGroupName)}</a></div>`;
                     adgroupsUl.appendChild(adGroupLi);
                 });
 
@@ -1186,15 +1219,61 @@
                 adgroupLinks.forEach(agLink => {
                     const adgroupName = agLink.textContent.toLowerCase();
                     if (adgroupName.includes(filterText)) {
-                        agLink.parentElement.style.display = '';
+                        agLink.parentElement.parentElement.style.display = '';
                         hasMatch = true;
                     } else {
-                        agLink.parentElement.style.display = 'none';
+                        agLink.parentElement.parentElement.style.display = 'none';
                     }
                 });
 
                 li.style.display = hasMatch ? '' : 'none';
             });
+        });
+
+        // Bulk Actions Logic
+        navList.addEventListener('change', e => {
+            if(e.target.matches('.bulk-checkbox')) {
+                const checked = navList.querySelectorAll('.bulk-checkbox:checked').length > 0;
+                bulkActionsContainer.style.display = checked ? 'block' : 'none';
+            }
+        });
+        
+        document.getElementById('bulk-delete').addEventListener('click', () => {
+            showConfirm('Are you sure you want to delete all selected items?', () => {
+                navList.querySelectorAll('.bulk-checkbox:checked').forEach(cb => {
+                    const element = document.getElementById(cb.dataset.id);
+                    if (element) element.remove();
+                });
+                updateNavigator();
+                bulkActionsContainer.style.display = 'none';
+            });
+        });
+
+        document.getElementById('bulk-complete').addEventListener('click', () => {
+             navList.querySelectorAll('.bulk-checkbox:checked').forEach(cb => {
+                const element = document.getElementById(cb.dataset.id);
+                if (element) {
+                    const toggle = element.querySelector('.complete-toggle');
+                    if(toggle && !toggle.checked) {
+                        toggle.checked = true;
+                        toggleCompletion(toggle);
+                    }
+                }
+            });
+            updateNavigator();
+        });
+        document.getElementById('bulk-incomplete').addEventListener('click', () => {
+             navList.querySelectorAll('.bulk-checkbox:checked').forEach(cb => {
+                const element = document.getElementById(cb.dataset.id);
+                if (element) {
+                    const toggle = element.querySelector('.complete-toggle');
+                    if(toggle && toggle.checked) {
+                        toggle.checked = false;
+                        toggleCompletion(toggle);
+                    }
+                }
+            });
+            updateNavigator();
         });
 
 
@@ -1354,16 +1433,13 @@
                 if (!extensions) return;
                 const levelData = {};
                 extensions.callouts?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Callout text': ext.text }, headers)));
+                // CHANGE #2: Join snippet values with a semicolon for CSV export
                 extensions.snippets?.forEach(ext => {
-                    ext.values.forEach(value => {
-                        csvRows.push(createCsvRow({ ...levelData, 'Header': ext.header, 'Snippet Values': value }, headers));
-                    });
+                    const snippetValues = ext.values.join(';');
+                    csvRows.push(createCsvRow({ ...levelData, 'Header': ext.header, 'Snippet Values': snippetValues }, headers));
                 });
                 extensions.call?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Phone Number': ext.phone, 'Country of Phone': ext.country }, headers)));
-                extensions.images?.forEach(ext => {
-                    const assetValue = ext.asset.startsWith('data:image') ? '[Image Uploaded in Builder]' : ext.asset;
-                    csvRows.push(createCsvRow({ ...levelData, 'Image': assetValue }, headers))
-                });
+                extensions.images?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Image': ext.asset }, headers)));
                 extensions.promotions?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Promotion item': ext.item, 'Promotion final URL': ext.url, 'Promotion type': ext.type, 'Promotion value': ext.value, 'Promotion occasion': ext.occasion }, headers)));
                 extensions.sitelinks?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Link Text': ext.text, 'Final URL': ext.url, 'Description Line 1': ext.desc1, 'Description Line 2': ext.desc2 }, headers)));
             };
@@ -1528,11 +1604,16 @@
                 showAlert("Please enter text to find.");
                 return;
             }
-            const textFields = document.querySelectorAll('input[type="text"], input[type="url"], textarea');
+            // CHANGE #1: Find/Replace fix - do not escape findText for RegExp
+            const findRegExp = new RegExp(findText, 'g');
+            const textFields = document.querySelectorAll('#campaigns-container input[type="text"], #campaigns-container input[type="url"], #campaigns-container textarea');
             let replacements = 0;
             textFields.forEach(field => {
-                if (field.value.includes(findText)) {
-                    field.value = field.value.replace(new RegExp(escapeHtml(findText), 'g'), replaceText);
+                const originalValue = field.value;
+                 if (originalValue.includes(findText)) {
+                    field.value = originalValue.replace(findRegExp, replaceText);
+                    // Trigger input event to update everything
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
                     replacements++;
                 }
             });
@@ -1602,6 +1683,135 @@
             });
         };
 
+        // Ad Strength Indicator Logic
+        const updateAdStrength = (adGroupItem) => {
+            const indicator = adGroupItem.querySelector('.ad-strength-indicator');
+            const tipsList = adGroupItem.querySelector('.ad-strength-tips');
+            if (!indicator || !tipsList) return;
+
+            const headlines = splitTextarea(getInputValue(adGroupItem, '.rsa-headlines'));
+            const descriptions = splitTextarea(getInputValue(adGroupItem, '.rsa-descriptions'));
+            const keywords = splitTextarea(getInputValue(adGroupItem, '.keywords')).map(kw => parseKeyword(kw).keyword.toLowerCase());
+
+            let score = 0;
+            let tips = [];
+
+            // Headline count
+            if (headlines.length < 3) { score -= 10; tips.push("Add at least 3 headlines."); }
+            else if (headlines.length >= 10) { score += 25; }
+            else if (headlines.length >= 5) { score += 15; }
+            else { score += 5; }
+
+            // Description count
+            if (descriptions.length < 2) { score -= 10; tips.push("Add at least 2 descriptions."); }
+            else if (descriptions.length >= 4) { score += 20; }
+            else if (descriptions.length >= 2) { score += 10; }
+
+            // Keyword in headlines
+            const headlinesText = headlines.join(' ').toLowerCase();
+            let keywordsInHeadlines = 0;
+            keywords.forEach(kw => {
+                if (headlinesText.includes(kw)) {
+                    keywordsInHeadlines++;
+                }
+            });
+            if (keywords.length > 0 && keywordsInHeadlines === 0) { tips.push("Include popular keywords in your headlines."); }
+            else if (keywordsInHeadlines > 0) { score += 25; }
+
+
+            // Headline uniqueness
+            const uniqueHeadlines = new Set(headlines.map(h => h.toLowerCase().trim()));
+            if (headlines.length > uniqueHeadlines.size) { tips.push("Make your headlines more unique."); }
+            else { score += 15; }
+            
+            // Final URL
+            if(getInputValue(adGroupItem, '.final-url').trim() === '') {
+                 tips.push("Add a Final URL.");
+            } else {
+                 score += 5;
+            }
+
+
+            let strengthText = 'Poor';
+            let strengthClass = 'ad-strength-poor';
+
+            if (score >= 80) { strengthText = 'Excellent'; strengthClass = 'ad-strength-excellent'; }
+            else if (score >= 60) { strengthText = 'Good'; strengthClass = 'ad-strength-good'; }
+            else if (score >= 40) { strengthText = 'Average'; strengthClass = 'ad-strength-average'; }
+            
+            indicator.textContent = `Ad Strength: ${strengthText}`;
+            indicator.className = `ad-strength-indicator ${strengthClass}`;
+            tipsList.innerHTML = tips.map(tip => `<li>${tip}</li>`).join('');
+        };
+        
+        // Bulk Campaign Generator (Token) Logic
+        document.getElementById('add-token-btn').addEventListener('click', () => {
+            const container = document.getElementById('token-container');
+            const newItem = document.createElement('div');
+            newItem.className = 'token-item';
+            newItem.innerHTML = `
+                <input type="text" class="form-input token-key w-1/3" placeholder="{TOKEN}">
+                <textarea class="form-textarea token-values w-2/3" rows="1" placeholder="Value 1, Value 2..."></textarea>
+                <button type="button" class="remove-token-btn remove-btn text-sm">&times;</button>
+            `;
+            container.appendChild(newItem);
+        });
+        
+        document.getElementById('token-container').addEventListener('click', e => {
+           if(e.target.matches('.remove-token-btn')) {
+               e.target.parentElement.remove();
+           }
+        });
+
+        document.getElementById('generate-bulk-campaigns-btn').addEventListener('click', () => {
+            const templateCampaign = document.querySelector('.campaign-item');
+            if(!templateCampaign) {
+                showAlert("Please create at least one campaign to use as a template.");
+                return;
+            }
+
+            const tokens = [];
+            document.querySelectorAll('.token-item').forEach(item => {
+                const key = item.querySelector('.token-key').value.trim();
+                const values = item.querySelector('.token-values').value.split(',').map(v => v.trim()).filter(v => v);
+                if(key && values.length > 0) {
+                    tokens.push({ key, values });
+                }
+            });
+
+            if(tokens.length === 0) {
+                showAlert("Please define at least one token and its values.");
+                return;
+            }
+            
+            const combinations = [];
+            const generateCombinations = (index, currentCombo) => {
+                if(index === tokens.length) {
+                    combinations.push(currentCombo);
+                    return;
+                }
+                const token = tokens[index];
+                for(const value of token.values) {
+                    generateCombinations(index + 1, { ...currentCombo, [token.key]: value });
+                }
+            }
+            generateCombinations(0, {});
+
+            const templateData = getSingleCampaignData(templateCampaign);
+            const templateDataString = JSON.stringify(templateData);
+
+            showConfirm(`This will generate ${combinations.length} new campaigns based on your template. Are you sure you want to proceed?`, () => {
+                combinations.forEach(combo => {
+                    let newCampaignDataString = templateDataString;
+                    for (const [key, value] of Object.entries(combo)) {
+                        newCampaignDataString = newCampaignDataString.replace(new RegExp(key, 'g'), value);
+                    }
+                    const newCampaignData = JSON.parse(newCampaignDataString);
+                    addCampaign(newCampaignData);
+                });
+            });
+        });
+
         // --- Initialize ---
         const savedSession = localStorage.getItem(AUTOSAVE_KEY);
         if (savedSession) {
@@ -1618,5 +1828,4 @@
     </script>
 </body>
 </html>
-
 

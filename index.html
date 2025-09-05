@@ -65,6 +65,9 @@
     <div class="page-wrapper">
         <nav id="navigator">
             <h2>Campaign Navigator</h2>
+            <div class="mb-4 border-b pb-4">
+                <a href="#builder-tools-container" class="nav-link font-semibold">🛠️ Builder Tools</a>
+            </div>
             <div class="mb-4">
                 <input type="text" id="nav-filter" class="form-input" placeholder="Filter campaigns...">
                 <button id="clear-focus-btn" class="btn-secondary w-full mt-2" style="display: none;">Clear Focus</button>
@@ -79,14 +82,17 @@
             </header>
 
             <!-- Tools Section -->
-            <div class="mb-6 bg-white p-4 rounded-lg shadow">
+            <div id="builder-tools-container" class="mb-6 bg-white p-4 rounded-lg shadow">
                  <details>
                     <summary class="cursor-pointer text-lg font-semibold text-gray-800">Builder Tools</summary>
                     <div class="mt-4 space-y-4">
                         <!-- Case Converter -->
                         <div class="input-group">
-                            <h4 class="text-lg font-semibold text-gray-700">Case Converter & Character Counter</h4>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Case Converter & Character Counter</h4>
+                                <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Input Text</label>
                                     <textarea id="case-converter-input" class="form-textarea" rows="5"></textarea>
@@ -107,8 +113,11 @@
                         </div>
                         <!-- Keyword Helper -->
                         <div class="input-group">
-                            <h4 class="text-lg font-semibold text-gray-700">Keyword Match Type Helper</h4>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Keyword Match Type Helper</h4>
+                                <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Paste Keywords (one per line)</label>
                                     <textarea id="keyword-helper-input" class="form-textarea" rows="5"></textarea>
@@ -130,7 +139,10 @@
                         </div>
                         <!-- Find and Replace -->
                         <div class="input-group">
-                             <h4 class="text-lg font-semibold text-gray-700">Find & Replace</h4>
+                             <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-lg font-semibold text-gray-700 m-0 p-0 border-b-0">Find & Replace</h4>
+                                <button type="button" class="clear-tool-btn text-xs text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                            </div>
                              <p class="text-sm text-gray-600 mb-2">Perform a case-sensitive find and replace across all text fields in your build.</p>
                              <div class="flex space-x-2">
                                  <input type="text" id="find-text" class="form-input" placeholder="Find text">
@@ -761,11 +773,14 @@
         document.body.addEventListener('click', (e) => {
             const target = e.target;
 
-            if (target.matches('.nav-link')) {
+            if (target.closest('.nav-link')) {
                 e.preventDefault();
-                const element = document.getElementById(target.getAttribute('href').substring(1));
+                const link = target.closest('.nav-link');
+                const element = document.getElementById(link.getAttribute('href').substring(1));
                 if (element) {
-                     if (element.classList.contains('campaign-item')) {
+                     if (element.id === 'builder-tools-container') {
+                        element.querySelector('details').open = true;
+                    } else if (element.classList.contains('campaign-item')) {
                         element.querySelectorAll('.campaign-content').forEach(content => content.classList.remove('hidden'));
                     } else if (element.classList.contains('ad-group-item')) {
                         const parentCampaign = element.closest('.campaign-item');
@@ -1489,6 +1504,19 @@
             const converted = caseConverterInput.value.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
             caseConverterOutput.value = converted;
             caseConverterOutputCounter.textContent = `Characters: ${converted.length}`;
+        });
+
+        document.querySelectorAll('.clear-tool-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const toolGroup = e.target.closest('.input-group');
+                if (toolGroup) {
+                    toolGroup.querySelectorAll('textarea, input[type="text"]').forEach(input => input.value = '');
+                    if (toolGroup.contains(caseConverterInputCounter)) {
+                        caseConverterInputCounter.textContent = 'Characters: 0';
+                        caseConverterOutputCounter.textContent = 'Characters: 0';
+                    }
+                }
+            });
         });
 
 

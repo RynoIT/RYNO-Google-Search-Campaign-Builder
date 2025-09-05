@@ -1433,9 +1433,9 @@
                 if (!extensions) return;
                 const levelData = {};
                 extensions.callouts?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Callout text': ext.text }, headers)));
-                // CHANGE #2: Join snippet values with a semicolon for CSV export
+                // FIX: Join snippet values with a newline for correct CSV export format
                 extensions.snippets?.forEach(ext => {
-                    const snippetValues = ext.values.join(';');
+                    const snippetValues = ext.values.join('\n');
                     csvRows.push(createCsvRow({ ...levelData, 'Header': ext.header, 'Snippet Values': snippetValues }, headers));
                 });
                 extensions.call?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Phone Number': ext.phone, 'Country of Phone': ext.country }, headers)));
@@ -1828,4 +1828,5 @@
     </script>
 </body>
 </html>
+
 

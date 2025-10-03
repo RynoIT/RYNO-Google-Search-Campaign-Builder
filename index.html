@@ -96,6 +96,7 @@
             <div id="bulk-actions-container" class="mb-4 p-2 border rounded-md bg-gray-200" style="display: none;">
                 <h3 class="text-sm font-semibold mb-2">Bulk Actions</h3>
                 <div class="space-y-2">
+                     <button id="bulk-apply-library" class="btn-secondary w-full text-xs">Apply Library Copy</button>
                      <button id="bulk-delete" class="btn-secondary bg-red-200 text-red-800 hover:bg-red-300 w-full text-xs">Delete Selected</button>
                      <button id="bulk-complete" class="btn-secondary w-full text-xs">Mark Selected as Done</button>
                      <button id="bulk-incomplete" class="btn-secondary w-full text-xs">Mark Selected as Not Done</button>
@@ -327,7 +328,12 @@
                             <div class="spellcheck-suggestions" style="display: none;"></div>
                             <p class="text-xs text-gray-500 mt-1">Accepted formats include: City, Country | Zip Code | State.</p>
                         </div>
-                        <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Ad Schedule (one per line)</label><textarea class="form-textarea ad-schedule" rows="3" placeholder="(Monday[09:00-17:00])&#10;(Tuesday[09:00-17:00])"></textarea><p class="text-xs text-gray-500 mt-1">Format: (Day[HH:MM-HH:MM]).</p></div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ad Schedule</label>
+                            <div class="ad-schedule-container space-y-2"></div>
+                            <button type="button" class="add-ad-schedule mt-2 btn-secondary btn-sm">+ Add Schedule</button>
+                            <input type="hidden" class="ad-schedule">
+                        </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Campaign Negative Keywords (one per line)</label>
                             <textarea class="form-textarea campaign-negatives spellcheck-enabled" rows="3" placeholder="[free]&#10;&quot;cheap&quot;&#10;jobs"></textarea>
@@ -438,6 +444,15 @@
         </div>
     </template>
     <!-- Extension Templates -->
+    <template id="ad-schedule-row-template">
+        <div class="ad-schedule-row flex items-center space-x-2">
+            <select class="form-select schedule-day w-1/3"></select>
+            <select class="form-select schedule-from w-1/4"></select>
+            <span>to</span>
+            <select class="form-select schedule-to w-1/4"></select>
+            <button type="button" class="remove-schedule-row remove-btn text-lg">&times;</button>
+        </div>
+    </template>
     <template id="call-ext-template"><div class="extension-item relative"><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Country</label><select class="form-select call-country"><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="DE">Germany</option><option value="FR">France</option><option value="ES">Spain</option><option value="MX">Mexico</option><option value="BR">Brazil</option><option value="IN">India</option></select></div><div><label class="block text-sm font-medium">Phone Number</label><input type="tel" class="form-input call-phone-number" placeholder="(555) 555-5555" required></div></div></div></template>
     <template id="sitelink-ext-template"><div class="extension-item relative grid grid-cols-1 md:grid-cols-2 gap-4"><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Sitelink Text</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input sitelink-text spellcheck-enabled" placeholder="Shop Men's Coats" maxlength="25" data-limit="25" required><div class="spellcheck-suggestions" style="display: none;"></div></div><div><label class="block text-sm font-medium">Final URL</label><input type="url" class="form-input sitelink-url" placeholder="https://example.com/mens" required></div><div class="md:col-span-2"><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Description 1 (optional)</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input sitelink-desc1 spellcheck-enabled" maxlength="35" data-limit="35"><div class="spellcheck-suggestions" style="display: none;"></div></div></div><div class="md:col-span-2"><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">Description 2 (optional)</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input sitelink-desc2 spellcheck-enabled" maxlength="35" data-limit="35"><div class="spellcheck-suggestions" style="display: none;"></div></div></div></div></template>
     <template id="callout-ext-template"><div class="extension-item relative"><div><button type="button" class="remove-ext absolute top-2 right-0 remove-btn">&times;</button><div class="flex justify-between items-center"><label class="block text-sm font-medium">Callout Text</label><div class="char-counter text-xs text-right text-gray-500"></div></div><input type="text" class="form-input callout-text spellcheck-enabled" placeholder="Free Shipping" maxlength="25" data-limit="25" required><div class="spellcheck-suggestions" style="display: none;"></div></div></div></template>
@@ -524,6 +539,27 @@
             </div>
         </div>
     </div>
+    
+    <!-- Bulk Apply Library Modal -->
+    <div id="library-apply-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Apply Library Copy</h3>
+            <div id="library-apply-body" class="modal-body">
+                <!-- Content will be populated by JS -->
+            </div>
+            <div class="mt-4 border-t pt-4">
+                 <h4 class="text-sm font-medium text-gray-700 mb-2">Action</h4>
+                 <div class="flex items-center space-x-4">
+                     <label class="flex items-center"><input type="radio" name="apply-library-action" value="append" class="form-radio" checked> <span class="ml-2">Append to existing copy</span></label>
+                     <label class="flex items-center"><input type="radio" name="apply-library-action" value="replace" class="form-radio"> <span class="ml-2">Replace existing copy</span></label>
+                 </div>
+            </div>
+            <div class="modal-footer mt-6 flex justify-end space-x-2">
+                <button type="button" id="library-apply-cancel-btn" class="btn-secondary">Cancel</button>
+                <button type="button" id="library-apply-btn" class="btn-primary">Apply to Selected</button>
+            </div>
+        </div>
+    </div>
 
 
     <script>
@@ -563,6 +599,12 @@
             cancelBtn: document.getElementById('library-cancel-btn'),
             insertBtn: document.getElementById('library-insert-btn')
         };
+        const libraryApplyModal = {
+            el: document.getElementById('library-apply-modal'),
+            body: document.getElementById('library-apply-body'),
+            cancelBtn: document.getElementById('library-apply-cancel-btn'),
+            applyBtn: document.getElementById('library-apply-btn')
+        };
         let activeTextareaForLibrary = null;
         let confirmCallback = null;
 
@@ -570,6 +612,7 @@
         const templates = {
             campaign: document.getElementById('campaign-template'),
             adGroup: document.getElementById('ad-group-template'),
+            adScheduleRow: document.getElementById('ad-schedule-row-template'),
             call: document.getElementById('call-ext-template'),
             sitelink: document.getElementById('sitelink-ext-template'),
             callout: document.getElementById('callout-ext-template'),
@@ -676,7 +719,7 @@
 
         const getExtensionsFromContainer = (container) => ({
             sitelinks: Array.from(container.querySelectorAll('.account-sitelinks-container .extension-item')).map(el => ({ text: getInputValue(el, '.sitelink-text'), url: getInputValue(el, '.sitelink-url'), desc1: getInputValue(el, '.sitelink-desc1'), desc2: getInputValue(el, '.sitelink-desc2') })),
-            call: Array.from(container.querySelectorAll('.account-call-extension-container .extension-item')).map(el => ({ phone: getInputValue(el, '.call-phone-number'), country: getInputValue(el, '.call-country') })),
+            calls: Array.from(container.querySelectorAll('.account-call-extension-container .extension-item')).map(el => ({ phone: getInputValue(el, '.call-phone-number'), country: getInputValue(el, '.call-country') })),
             callouts: Array.from(container.querySelectorAll('.account-callouts-container .extension-item')).map(el => ({ text: getInputValue(el, '.callout-text') })),
             snippets: Array.from(container.querySelectorAll('.account-snippets-container .extension-item')).map(el => {
                 const values = Array.from(el.querySelectorAll('.snippet-value')).map(input => input.value.trim()).filter(v => v);
@@ -697,18 +740,30 @@
             isComplete: getInputChecked(adGroupEl, '.complete-toggle')
         });
 
-        const getSingleCampaignData = (campaignEl) => ({
-            settings: {
-                name: getInputValue(campaignEl, '.campaign-name'), budget: getInputValue(campaignEl, '.campaign-budget'),
-                status: getInputValue(campaignEl, '.campaign-status'), bidStrategy: getInputValue(campaignEl, '.bid-strategy'),
-                adSchedule: getInputValue(campaignEl, '.ad-schedule'), campaignNegatives: getInputValue(campaignEl, '.campaign-negatives'),
-                searchPartners: getInputChecked(campaignEl, '.search-partners'), displayNetwork: getInputChecked(campaignEl, '.display-network'),
-                locationOption: getInputValue(campaignEl, '.location-option'),
-            },
-            locations: getInputValue(campaignEl, '.locations'),
-            adGroups: Array.from(campaignEl.querySelectorAll('.ad-group-item')).map(getSingleAdGroupData),
-            isComplete: getInputChecked(campaignEl, '.complete-toggle')
-        });
+        const getSingleCampaignData = (campaignEl) => {
+            // New logic for Ad Schedule
+            const adScheduleRows = campaignEl.querySelectorAll('.ad-schedule-row');
+            const adScheduleString = Array.from(adScheduleRows).map(row => {
+                const day = getInputValue(row, '.schedule-day');
+                const from = getInputValue(row, '.schedule-from');
+                const to = getInputValue(row, '.schedule-to');
+                return `(${day}[${from}-${to}])`;
+            }).join('\n');
+            setInputValue(campaignEl, '.ad-schedule', adScheduleString); // Update hidden input
+
+            return {
+                settings: {
+                    name: getInputValue(campaignEl, '.campaign-name'), budget: getInputValue(campaignEl, '.campaign-budget'),
+                    status: getInputValue(campaignEl, '.campaign-status'), bidStrategy: getInputValue(campaignEl, '.bid-strategy'),
+                    adSchedule: getInputValue(campaignEl, '.ad-schedule'), campaignNegatives: getInputValue(campaignEl, '.campaign-negatives'),
+                    searchPartners: getInputChecked(campaignEl, '.search-partners'), displayNetwork: getInputChecked(campaignEl, '.display-network'),
+                    locationOption: getInputValue(campaignEl, '.location-option'),
+                },
+                locations: getInputValue(campaignEl, '.locations'),
+                adGroups: Array.from(campaignEl.querySelectorAll('.ad-group-item')).map(getSingleAdGroupData),
+                isComplete: getInputChecked(campaignEl, '.complete-toggle')
+            };
+        };
         
         const getAccountData = () => ({
             clientName: document.getElementById('client-name').value,
@@ -726,20 +781,21 @@
         const loadExtensions = (container, extensions) => {
             if (!extensions) return;
             const extMap = {
-                sitelink: '.account-sitelinks-container',
-                call: '.account-call-extension-container',
-                callout: '.account-callouts-container',
-                snippet: '.account-snippets-container',
-                promotion: '.account-promotions-container',
-                image: '.account-images-container'
+                sitelinks: { selector: '.account-sitelinks-container', template: 'sitelink' },
+                calls: { selector: '.account-call-extension-container', template: 'call' },
+                callouts: { selector: '.account-callouts-container', template: 'callout' },
+                snippets: { selector: '.account-snippets-container', template: 'snippet' },
+                promotions: { selector: '.account-promotions-container', template: 'promotion' },
+                images: { selector: '.account-images-container', template: 'image' }
             };
 
-            Object.entries(extensions).forEach(([type, dataArray]) => {
-                if(dataArray && dataArray.length > 0 && extMap[type]){
-                    const targetContainer = container.querySelector(extMap[type]);
-                    if(targetContainer) {
+            Object.entries(extensions).forEach(([pluralType, dataArray]) => {
+                const config = extMap[pluralType];
+                if (dataArray && dataArray.length > 0 && config) {
+                    const targetContainer = container.querySelector(config.selector);
+                    if (targetContainer) {
                         targetContainer.innerHTML = ''; // Clear before loading
-                        dataArray.forEach(data => addExtension(targetContainer, type, data));
+                        dataArray.forEach(data => addExtension(targetContainer, config.template, data));
                     }
                 }
             });
@@ -809,7 +865,19 @@
             setInputValue(campaignEl, '.campaign-budget', settings.budget);
             setInputValue(campaignEl, '.campaign-status', settings.status);
             setInputValue(campaignEl, '.bid-strategy', settings.bidStrategy);
-            setInputValue(campaignEl, '.ad-schedule', settings.adSchedule);
+            
+            // New Ad Schedule Loading Logic
+            const adScheduleContainer = campaignEl.querySelector('.ad-schedule-container');
+            adScheduleContainer.innerHTML = ''; // Clear existing
+            const scheduleRegex = /\((\w+)\[(\d{2}:\d{2})-(\d{2}:\d{2})\]\)/g;
+            let match;
+            if(settings.adSchedule){
+                 while ((match = scheduleRegex.exec(settings.adSchedule)) !== null) {
+                    addAdScheduleRow(adScheduleContainer, { day: match[1], from: match[2], to: match[3] });
+                }
+            }
+           
+            setInputValue(campaignEl, '.ad-schedule', settings.adSchedule); // Also set hidden for consistency
             setInputValue(campaignEl, '.campaign-negatives', settings.campaignNegatives);
             setInputChecked(campaignEl, '.search-partners', settings.searchPartners);
             setInputChecked(campaignEl, '.display-network', settings.displayNetwork);
@@ -836,6 +904,53 @@
             container.appendChild(div);
             updateCharCounter(div.querySelector('.snippet-value'));
         };
+
+        // --- Ad Schedule ---
+        const formatAmPm = (h, m) => {
+            const hour = h % 12 || 12;
+            const minute = String(m).padStart(2, '0');
+            const period = h < 12 ? 'AM' : 'PM';
+            return `${hour}:${minute} ${period}`;
+        };
+    
+        const generateTimeOptions = () => {
+            let options = '';
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const militaryTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    const amPmTime = formatAmPm(h, m);
+                    options += `<option value="${militaryTime}">${amPmTime}</option>`;
+                }
+            }
+            return options;
+        };
+        const timeOptions = generateTimeOptions();
+        
+        const addAdScheduleRow = (container, data = {}) => {
+            const clone = templates.adScheduleRow.content.cloneNode(true);
+            const row = clone.querySelector('.ad-schedule-row');
+            
+            const daySelect = row.querySelector('.schedule-day');
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            daySelect.innerHTML = days.map(d => `<option value="${d}">${d}</option>`).join('');
+            
+            const fromSelect = row.querySelector('.schedule-from');
+            fromSelect.innerHTML = timeOptions;
+
+            const toSelect = row.querySelector('.schedule-to');
+            toSelect.innerHTML = timeOptions;
+
+            if (data.day) daySelect.value = data.day;
+            if (data.from) fromSelect.value = data.from;
+            else fromSelect.value = "09:00"; // Default 'from'
+            if (data.to) toSelect.value = data.to;
+            else toSelect.value = "17:00"; // Default 'to'
+
+            container.appendChild(clone);
+            // Trigger input event to update hidden field and autosave
+            container.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
 
         // --- Event Delegation & Input Handling ---
         document.body.addEventListener('click', (e) => {
@@ -890,6 +1005,17 @@
             const target = e.target;
             const campaignItem = target.closest('.campaign-item');
             const adGroupItem = target.closest('.ad-group-item');
+
+            if (target.matches('.add-ad-schedule')) {
+                const container = target.previousElementSibling;
+                addAdScheduleRow(container);
+            }
+            if (target.matches('.remove-schedule-row')) {
+                const row = target.closest('.ad-schedule-row');
+                const container = row.parentElement;
+                row.remove();
+                container.dispatchEvent(new Event('change', { bubbles: true }));
+            }
 
             if (target.closest('.add-snippet-value')) {
                 const container = target.previousElementSibling;
@@ -1076,6 +1202,18 @@
                  updateNavigator();
             }
             if (e.target.matches('.complete-toggle')) toggleCompletion(e.target);
+        });
+
+        // This listener ensures that any change to the ad schedule rows triggers autosave
+        multiCampaignForm.addEventListener('change', e => {
+             if (e.target.matches('.schedule-day, .schedule-from, .schedule-to')) {
+                const campaignItem = e.target.closest('.campaign-item');
+                if(campaignItem) {
+                    const hiddenInput = campaignItem.querySelector('.ad-schedule');
+                    // This will trigger the 'input' event listener on the form, which in turn calls autoSave
+                    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
         });
         
         // --- Keyword Helper ---
@@ -1310,6 +1448,76 @@
             updateNavigator();
         });
 
+        // NEW: Bulk Apply Library Logic
+        document.getElementById('bulk-apply-library').addEventListener('click', () => {
+            const selectedAdGroupCheckboxes = navList.querySelectorAll('.bulk-checkbox[data-type="adgroup"]:checked');
+            if (selectedAdGroupCheckboxes.length === 0) {
+                showAlert("Please select at least one ad group from the navigator to apply library copy.");
+                return;
+            }
+
+            const headlines = splitTextarea(document.getElementById('library-headlines').value);
+            const descriptions = splitTextarea(document.getElementById('library-descriptions').value);
+
+            if (headlines.length === 0 && descriptions.length === 0) {
+                showAlert("Your Ad Copy Library is empty. Please add some reusable copy first.");
+                return;
+            }
+
+            let bodyHtml = '';
+            if (headlines.length > 0) {
+                bodyHtml += '<h4 class="text-md font-semibold text-gray-800 mb-2">Headlines</h4>';
+                bodyHtml += headlines.map(h => `<label class="library-item"><input type="checkbox" class="form-checkbox" data-type="headline" value="${escapeHtml(h)}"> <span class="ml-2 text-sm">${escapeHtml(h)}</span></label>`).join('');
+            }
+            if (descriptions.length > 0) {
+                bodyHtml += '<h4 class="text-md font-semibold text-gray-800 mt-4 mb-2">Descriptions</h4>';
+                bodyHtml += descriptions.map(d => `<label class="library-item"><input type="checkbox" class="form-checkbox" data-type="description" value="${escapeHtml(d)}"> <span class="ml-2 text-sm">${escapeHtml(d)}</span></label>`).join('');
+            }
+            
+            libraryApplyModal.body.innerHTML = bodyHtml;
+            libraryApplyModal.el.classList.add('visible');
+        });
+
+        libraryApplyModal.cancelBtn.addEventListener('click', () => {
+            libraryApplyModal.el.classList.remove('visible');
+        });
+
+        libraryApplyModal.applyBtn.addEventListener('click', () => {
+            const action = libraryApplyModal.el.querySelector('input[name="apply-library-action"]:checked').value;
+            const selectedHeadlines = Array.from(libraryApplyModal.body.querySelectorAll('input[data-type="headline"]:checked')).map(cb => cb.value);
+            const selectedDescriptions = Array.from(libraryApplyModal.body.querySelectorAll('input[data-type="description"]:checked')).map(cb => cb.value);
+
+            const selectedAdGroupIds = Array.from(navList.querySelectorAll('.bulk-checkbox[data-type="adgroup"]:checked')).map(cb => cb.dataset.id);
+
+            selectedAdGroupIds.forEach(id => {
+                const adGroupEl = document.getElementById(id);
+                if (adGroupEl) {
+                    const headlinesTextarea = adGroupEl.querySelector('.rsa-headlines');
+                    const descriptionsTextarea = adGroupEl.querySelector('.rsa-descriptions');
+
+                    if (action === 'replace') {
+                        headlinesTextarea.value = selectedHeadlines.join('\n');
+                        descriptionsTextarea.value = selectedDescriptions.join('\n');
+                    } else { // Append
+                        const currentHeadlines = headlinesTextarea.value.trim();
+                        const currentDescriptions = descriptionsTextarea.value.trim();
+                        
+                        headlinesTextarea.value = (currentHeadlines ? currentHeadlines + '\n' : '') + selectedHeadlines.join('\n');
+                        descriptionsTextarea.value = (currentDescriptions ? currentDescriptions + '\n' : '') + selectedDescriptions.join('\n');
+                    }
+                    // Trigger input event to update previews, ad strength, etc.
+                    headlinesTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    descriptionsTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+
+            libraryApplyModal.el.classList.remove('visible');
+            // Uncheck boxes after applying
+            navList.querySelectorAll('.bulk-checkbox:checked').forEach(cb => cb.checked = false);
+            bulkActionsContainer.style.display = 'none';
+            showAlert(`Applied library copy to ${selectedAdGroupIds.length} ad group(s).`);
+        });
+
 
         // --- Save / Load / Autosave ---
         const AUTOSAVE_KEY = 'rynoCampaignBuilderAutosave';
@@ -1526,7 +1734,7 @@
                     const snippetValues = ext.values.join('\n');
                     csvRows.push(createCsvRow({ ...levelData, 'Header': ext.header, 'Snippet Values': snippetValues }, headers));
                 });
-                extensions.call?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Phone Number': ext.phone, 'Country of Phone': ext.country }, headers)));
+                extensions.calls?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Phone Number': ext.phone, 'Country of Phone': ext.country }, headers)));
                 extensions.images?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Image': ext.asset }, headers)));
                 extensions.promotions?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Promotion item': ext.item, 'Promotion final URL': ext.url, 'Promotion type': ext.type, 'Promotion value': ext.value, 'Promotion occasion': ext.occasion }, headers)));
                 extensions.sitelinks?.forEach(ext => csvRows.push(createCsvRow({ ...levelData, 'Link Text': ext.text, 'Final URL': ext.url, 'Description Line 1': ext.desc1, 'Description Line 2': ext.desc2 }, headers)));
@@ -1697,7 +1905,13 @@
                 showAlert("Please enter text to find.");
                 return;
             }
-            const findRegExp = new RegExp(findText, 'g');
+            
+            // Function to escape special regex characters from the findText
+            const escapeRegExp = (string) => {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            };
+
+            const findRegExp = new RegExp(escapeRegExp(findText), 'g');
             const textFields = document.querySelectorAll('#campaigns-container input[type="text"], #campaigns-container input[type="url"], #campaigns-container textarea');
             let replacements = 0;
             textFields.forEach(field => {
@@ -1887,8 +2101,9 @@
                 combinations.forEach(combo => {
                     let newCampaignDataString = templateDataString;
                     for (const [key, value] of Object.entries(combo)) {
-                         // This is a robust method for global, literal string replacement.
-                        newCampaignDataString = newCampaignDataString.split(key).join(value);
+                        // Use a global regular expression to replace all occurrences of the token
+                        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        newCampaignDataString = newCampaignDataString.replace(new RegExp(escapedKey, 'g'), value);
                     }
                     const newCampaignData = JSON.parse(newCampaignDataString);
                     addCampaign(newCampaignData);
@@ -1986,3 +2201,5 @@
     </script>
 </body>
 </html>
+
+
